@@ -48,3 +48,14 @@ npm run cf-typegen   # Regenerate Cloudflare Worker type definitions
 ## Issue Tracking
 
 This project uses beads (`bd`) for AI-supervised issue tracking. See `AGENTS.md` for the mandatory session workflow including issue updates and pushing changes.
+
+## Beads Task Workflow
+
+**Before starting a task:**
+1. Use the `perplexity-search` skill to research best practices, current documentation, and implementation patterns
+2. Add research findings as comments to the task: `bd comments add <task-id> "<findings>"`
+
+**After completing a task:**
+1. Close with detailed summary: `bd close <task-id> "<what was done>"`
+2. Add implementation notes to dependent/unblocked tasks with relevant details they'll need
+3. Include: file paths created, patterns used, gotchas discovered

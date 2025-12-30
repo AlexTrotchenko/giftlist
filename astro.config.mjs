@@ -2,11 +2,14 @@
 
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
+import clerk from "@clerk/astro";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
 // https://astro.build/config
 export default defineConfig({
+	output: "server",
+
 	adapter: cloudflare({
 		platformProxy: {
 			enabled: true,
@@ -15,7 +18,7 @@ export default defineConfig({
 		imageService: "cloudflare",
 	}),
 
-	integrations: [react()],
+	integrations: [clerk(), react()],
 
 	vite: {
 		plugins: [tailwindcss()],
