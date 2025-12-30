@@ -8,6 +8,20 @@
       "when": 1767070327764,
       "tag": "0000_regular_ted_forrester",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1767121863768,
+      "tag": "0001_slippery_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767121974075,
+      "tag": "0002_bored_daredevil",
+      "breakpoints": true
     }
   ]
 }
