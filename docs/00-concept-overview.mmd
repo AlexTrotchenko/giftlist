@@ -1,0 +1,51 @@
+---
+title: Gift List App - Concept Overview
+---
+flowchart TB
+    subgraph "Identity & Access"
+        User((User))
+        Session[Session]
+        Invitation[Invitation]
+    end
+
+    subgraph "Core Gift Functionality"
+        Wishlist[Wishlist]
+        Item[Item]
+        Tag[Tag]
+        Claim[Claim]
+    end
+
+    subgraph "Social"
+        Group[Group]
+        Notification[Notification]
+    end
+
+    User -->|authenticates via| Session
+    User -->|owns| Wishlist
+    Wishlist -->|contains| Item
+    
+    User -->|creates/joins| Group
+    Group -->|has members| User
+    
+    Invitation -->|from/to| User
+    Invitation -->|for| Group
+    
+    Item -->|tagged with| Tag
+    Tag -->|references| Group
+    Tag -->|references| User
+    
+    Claim -->|reserves| Item
+    Claim -->|by| User
+    
+    Notification -->|sent to| User
+
+    subgraph "Recipient Types"
+        RT[Recipient = User | Group]
+    end
+
+    subgraph "Key Constraints"
+        C1[Owner cannot tag with self]
+        C2[Owner cannot tag with own groups]
+        C3[One claim per item]
+        C4[Claims hidden from item owner]
+    end

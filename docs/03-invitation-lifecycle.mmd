@@ -1,0 +1,33 @@
+---
+title: Invitation Lifecycle
+---
+stateDiagram-v2
+    [*] --> Pending: invite(group, from, to)
+
+    Pending --> Accepted: accept(group, user)
+    Pending --> Declined: decline(group, user)
+    Pending --> Revoked: revoke(group, from, to)
+
+    Accepted --> [*]
+    Declined --> [*]
+    Revoked --> [*]
+
+    note right of Pending
+        Invitee notified
+        Awaiting response
+    end note
+
+    note right of Accepted
+        Triggers: Group.addMember
+        Triggers: Notification to group
+    end note
+
+    note right of Declined
+        No group change
+        Invitation removed
+    end note
+
+    note right of Revoked
+        Inviter canceled
+        Invitation removed
+    end note

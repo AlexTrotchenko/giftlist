@@ -1,0 +1,43 @@
+---
+title: Notification Rules
+---
+flowchart TD
+    subgraph "Owner Receives"
+        O1[Added to group] --> O1n["You joined [Group]. X items no longer shared."]
+        O2[Group deleted] --> O2n["[Group] was deleted. X items lost that tag."]
+        O3[Removed from group] --> O3n["You left [Group]."]
+    end
+
+    subgraph "Recipient Receives"
+        R1[New item visible] --> R1n["[Owner] added [Item]"]
+        R2[Item claimed by other] --> R2n["[Item] was claimed"]
+        R3[Claim released] --> R3n["[Item] is available again"]
+        R4[Item updated] --> R4n["[Owner] updated [Item]"]
+    end
+
+    subgraph "Claimer Receives"
+        C1[Removed from group] --> C1n["You left [Group]. Claim on [Item] released."]
+        C2[Item deleted] --> C2n["[Owner] removed [Item] you claimed"]
+        C3[Lost access] --> C3n["You no longer have access to [Item]"]
+        C4[Owner joined group] --> C4n["[Item] unshared. Your claim released."]
+    end
+
+    subgraph "Invitee Receives"
+        I1[Invited to group] --> I1n["[User] invited you to [Group]"]
+        I2[Invitation revoked] --> I2n["Invitation to [Group] withdrawn"]
+    end
+
+    subgraph "Group Members Receive"
+        G1[New member joined] --> G1n["[User] joined [Group]"]
+        G2[Member left] --> G2n["[User] left [Group]"]
+    end
+
+    subgraph "Never Notify Owner"
+        X1[Item claimed] -.-> X1n[BLOCKED]
+        X2[Item unclaimed] -.-> X2n[BLOCKED]
+        X3[Who claimed] -.-> X3n[BLOCKED]
+    end
+
+    style X1n fill:#ffcccc
+    style X2n fill:#ffcccc
+    style X3n fill:#ffcccc

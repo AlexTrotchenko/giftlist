@@ -1,0 +1,37 @@
+---
+title: Claim Lifecycle
+---
+stateDiagram-v2
+    [*] --> Available: item shared with recipients
+
+    Available --> Claimed: claim(item, user)
+    
+    Claimed --> Available: unclaim(item, user)
+    Claimed --> Available: release(item)
+    Claimed --> [*]: item removed
+
+    Available --> [*]: item removed
+    Available --> [*]: all tags removed
+
+    state "Release Triggers" as triggers {
+        T1: Claimer removed from group
+        T2: Owner joins claimer's group
+        T3: Item untagged from claimer's access
+        T4: Group deleted
+    }
+
+    note right of Available
+        Any recipient can claim
+        First come, first served
+    end note
+
+    note right of Claimed
+        Locked to one claimer
+        Visible to all recipients
+        Hidden from owner
+    end note
+
+    note left of triggers
+        Any of these triggers
+        Claim.release(item)
+    end note

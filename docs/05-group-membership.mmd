@@ -1,0 +1,38 @@
+---
+title: Group Membership
+---
+stateDiagram-v2
+    [*] --> NonMember
+
+    NonMember --> Invited: receive invitation
+    Invited --> Member: accept invitation
+    Invited --> NonMember: decline invitation
+    Invited --> NonMember: invitation revoked
+
+    Member --> NonMember: removed from group
+    Member --> [*]: group deleted
+    NonMember --> [*]: user deleted
+
+    state Member {
+        [*] --> Active
+        Active --> HasClaims: claims item via this group
+        HasClaims --> Active: unclaims all
+        HasClaims --> Active: claims released
+    }
+
+    note right of Invited
+        Notification sent
+        Can accept or decline
+    end note
+
+    note right of Member
+        Can see items tagged with group
+        Can claim those items
+        Can invite others
+    end note
+
+    note left of HasClaims
+        On leave: claims released
+        On group delete: claims released
+        Notified of releases
+    end note

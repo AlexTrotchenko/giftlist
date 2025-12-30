@@ -1,0 +1,25 @@
+---
+title: User Lifecycle
+---
+stateDiagram-v2
+    [*] --> Registered: register(email, name)
+
+    Registered --> Registered: updateProfile
+    Registered --> LoggedIn: login
+
+    LoggedIn --> LoggedIn: actions...
+    LoggedIn --> Registered: logout
+    LoggedIn --> Registered: session expires
+
+    Registered --> [*]: delete
+
+    note right of Registered
+        Has profile
+        No active session
+        Can be invited to groups
+    end note
+
+    note right of LoggedIn
+        Active session
+        Can perform all actions
+    end note

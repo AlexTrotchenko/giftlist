@@ -1,0 +1,36 @@
+---
+title: Item Lifecycle
+---
+stateDiagram-v2
+    [*] --> Private: add(owner, item, details)
+
+    Private --> Private: update details
+    Private --> Shared: tag with recipient
+    Private --> [*]: remove
+
+    Shared --> Shared: add more tags
+    Shared --> Shared: update details
+    Shared --> Private: remove all tags
+    Shared --> Claimed: recipient claims
+    Shared --> [*]: remove
+
+    Claimed --> Claimed: update details
+    Claimed --> Shared: claimer unclaims
+    Claimed --> Shared: claimer loses access
+    Claimed --> [*]: remove
+
+    note right of Private
+        Only owner can see
+        Not available for claiming
+    end note
+
+    note right of Shared
+        Owner + tagged recipients can see
+        Available for claiming
+    end note
+
+    note right of Claimed
+        Owner sees as normal item
+        Recipients see claim + claimer
+        Locked - no one else can claim
+    end note

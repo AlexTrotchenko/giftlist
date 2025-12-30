@@ -1,0 +1,50 @@
+---
+title: Sync Rules - Cascade Effects
+---
+flowchart TD
+    subgraph "Item Deletion"
+        D1[Wishlist.remove item] --> D1a[Tag.clear item]
+        D1 --> D1b[Claim.release item]
+        D1 --> D1c[Notification.send claimer]
+    end
+
+    subgraph "Group Deletion"
+        D2[Group.delete] --> D2a[Tag.detach group from all items]
+        D2 --> D2b[Claim.release for group members]
+        D2 --> D2c[Invitation.revokeAll for group]
+        D2 --> D2d[Notification.send affected owners]
+        D2 --> D2e[Notification.send affected claimers]
+    end
+
+    subgraph "User Deletion"
+        D3[User.delete] --> D3a[Session.logoutAll]
+        D3 --> D3b[Wishlist.deleteAll]
+        D3 --> D3c[Group.removeFromAll]
+        D3 --> D3d[Invitation.revokeAll]
+        D3 --> D3e[Claim.releaseAll]
+    end
+
+    subgraph "Membership Changes"
+        M1[Group.removeMember user] --> M1a[Claim.release user's claims via group]
+        M1 --> M1b[Notification.send user]
+
+        M2[Group.addMember user] --> M2a{user owns items tagged with group?}
+        M2a -->|Yes| M2b[Tag.detach group from user's items]
+        M2a -->|Yes| M2c[Claim.release for those items]
+        M2a -->|Yes| M2d[Notification.send user]
+        M2a -->|No| M2e[No action needed]
+    end
+
+    subgraph "Invitation Flow"
+        I1[Invitation.invite] --> I1a[Notification.send invitee]
+        
+        I2[Invitation.accept] --> I2a[Group.addMember]
+        I2 --> I2b[Notification.send group members]
+    end
+
+    subgraph "Tag Changes"
+        T1[Tag.detach recipient from item] --> T1a{recipient was claimer?}
+        T1a -->|Yes| T1b[Claim.release item]
+        T1a -->|Yes| T1c[Notification.send claimer]
+        T1a -->|No| T1d[No action]
+    end

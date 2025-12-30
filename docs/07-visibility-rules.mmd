@@ -1,0 +1,53 @@
+---
+title: Visibility Rules by Role
+---
+flowchart TB
+    subgraph "Item Owner View"
+        O1[Item details ✓]
+        O2[Tags/Recipients ✓]
+        O3[Edit/Delete controls ✓]
+        O4[Claim status ✗]
+        O5[Claimer identity ✗]
+    end
+
+    subgraph "Recipient View"
+        R1[Item details ✓]
+        R2[Claim status ✓]
+        R3[Claimer identity ✓]
+        R4[Claim/Unclaim button ✓]
+        R5[Edit controls ✗]
+        R6[Other recipients ✗]
+    end
+
+    subgraph "Claimer View"
+        C1[Item details ✓]
+        C2[Own claim status ✓]
+        C3[Unclaim button ✓]
+        C4[Other claimers N/A]
+    end
+
+    subgraph "Non-Recipient View"
+        N1[Item not visible ✗]
+        N2[Cannot claim ✗]
+    end
+
+    subgraph "Group Member View"
+        G1[Group name ✓]
+        G2[Member list ✓]
+        G3[Invite others ✓]
+        G4[Leave group ✓]
+    end
+
+    subgraph "Group Non-Member View"
+        GN1[Group not visible ✗]
+        GN2[Items tagged with group ✗]
+    end
+
+    style O4 fill:#ffcccc
+    style O5 fill:#ffcccc
+    style R5 fill:#ffcccc
+    style R6 fill:#ffcccc
+    style N1 fill:#ffcccc
+    style N2 fill:#ffcccc
+    style GN1 fill:#ffcccc
+    style GN2 fill:#ffcccc
