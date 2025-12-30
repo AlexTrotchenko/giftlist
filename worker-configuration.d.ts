@@ -8,6 +8,7 @@ declare namespace Cloudflare {
 	interface Env {
 		PUBLIC_CLERK_PUBLISHABLE_KEY: string;
 		CLERK_SECRET_KEY: string;
+		RESEND_API_KEY: string;
 		R2: R2Bucket;
 		DB: D1Database;
 		ASSETS: Fetcher;

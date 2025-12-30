@@ -1,0 +1,118 @@
+---
+import { and, eq, ne } from "drizzle-orm";
+import { SharedPage } from "@/components/SharedPage";
+import { groupMembers, groups, itemRecipients, items, users } from "@/db/schema";
+import type { ItemResponse } from "@/db/types";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { getAuthAdapter } from "@/lib/auth";
+import { createDb } from "@/lib/db";
+
+const db = createDb(Astro.locals.runtime.env.DB);
+const auth = getAuthAdapter(Astro.locals.runtime.env);
+
+const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
+
+if (!authUser) {
+	return Astro.redirect("/");
+}
+
+// Look up internal user by Clerk ID, create if doesn't exist
+let user = await db
+	.select()
+	.from(users)
+	.where(eq(users.clerkId, authUser.providerId))
+	.get();
+
+if (!user) {
+	const [newUser] = await db
+		.insert(users)
+		.values({
+			clerkId: authUser.providerId,
+			email: authUser.email,
+			name: authUser.name,
+			avatarUrl: authUser.avatarUrl,
+		})
+		.returning();
+	user = newUser;
+}
+
+// Query items shared with groups the user is a member of
+const sharedItems = await db
+	.select({
+		id: items.id,
+		ownerId: items.ownerId,
+		name: items.name,
+		url: items.url,
+		price: items.price,
+		notes: items.notes,
+		imageUrl: items.imageUrl,
+		createdAt: items.createdAt,
+		updatedAt: items.updatedAt,
+		ownerName: users.name,
+		ownerEmail: users.email,
+		groupId: groups.id,
+		groupName: groups.name,
+	})
+	.from(items)
+	.innerJoin(itemRecipients, eq(items.id, itemRecipients.itemId))
+	.innerJoin(groupMembers, eq(itemRecipients.groupId, groupMembers.groupId))
+	.innerJoin(groups, eq(itemRecipients.groupId, groups.id))
+	.innerJoin(users, eq(items.ownerId, users.id))
+	.where(
+		and(
+			eq(groupMembers.userId, user.id),
+			ne(items.ownerId, user.id),
+		),
+	);
+
+// Deduplicate items shared with multiple groups
+const itemMap = new Map<
+	string,
+	{
+		item: ItemResponse;
+		owner: { id: string; name: string | null; email: string };
+		sharedVia: { groupId: string; groupName: string }[];
+	}
+>();
+
+for (const row of sharedItems) {
+	const existing = itemMap.get(row.id);
+	if (existing) {
+		existing.sharedVia.push({
+			groupId: row.groupId,
+			groupName: row.groupName,
+		});
+	} else {
+		itemMap.set(row.id, {
+			item: {
+				id: row.id,
+				ownerId: row.ownerId,
+				name: row.name,
+				url: row.url,
+				price: row.price,
+				notes: row.notes,
+				imageUrl: row.imageUrl,
+				createdAt: row.createdAt?.toISOString() ?? null,
+				updatedAt: row.updatedAt?.toISOString() ?? null,
+			},
+			owner: {
+				id: row.ownerId,
+				name: row.ownerName,
+				email: row.ownerEmail,
+			},
+			sharedVia: [
+				{
+					groupId: row.groupId,
+					groupName: row.groupName,
+				},
+			],
+		});
+	}
+}
+
+const serializedItems = Array.from(itemMap.values());
+---
+
+<AppLayout title="Shared With Me - GiftList">
+	<SharedPage client:load initialItems={serializedItems} />
+</AppLayout>

@@ -6,6 +6,7 @@ import {
 } from "@clerk/astro/react";
 import { Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function Header() {
 	return (
@@ -23,6 +24,18 @@ export function Header() {
 					>
 						My Wishlist
 					</a>
+					<a
+						href="/shared"
+						className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+					>
+						Shared With Me
+					</a>
+					<a
+						href="/groups"
+						className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+					>
+						Groups
+					</a>
 				</nav>
 
 				<div className="ml-auto flex items-center gap-4">
@@ -34,6 +47,7 @@ export function Header() {
 						</SignInButton>
 					</SignedOut>
 					<SignedIn>
+						<NotificationBell />
 						<UserButton
 							appearance={{
 								elements: {

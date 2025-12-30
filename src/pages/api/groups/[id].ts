@@ -1,15 +1,17 @@
 import type { APIContext } from "astro";
 import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
-import { groupMembers, itemRecipients, items, users } from "@/db/schema";
+import { groupMembers, groups, users } from "@/db/schema";
+import type { GroupResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
-import { type UpdateItemInput, updateItemSchema } from "@/lib/validations/item";
+import {
+	type UpdateGroupInput,
+	updateGroupSchema,
+} from "@/lib/validations/group";
 
 /**
- * GET /api/items/[id] - Get an item (owner or recipient)
- * Owner can view their item directly.
- * Recipients can view the item if it's shared with a group they belong to.
+ * GET /api/groups/[id] - Get a single group (owner or member only)
  */
 export async function GET(context: APIContext) {
 	const db = createDb(context.locals.runtime.env.DB);
@@ -36,79 +38,58 @@ export async function GET(context: APIContext) {
 		});
 	}
 
-	const itemId = context.params.id;
-	if (!itemId) {
-		return new Response(JSON.stringify({ error: "Item ID required" }), {
+	const groupId = context.params.id;
+	if (!groupId) {
+		return new Response(JSON.stringify({ error: "Group ID required" }), {
 			status: 400,
 			headers: { "Content-Type": "application/json" },
 		});
 	}
 
-	// First, try to get item as owner
-	const ownedItem = await db
+	// Get the group
+	const group = await db
 		.select()
-		.from(items)
-		.where(and(eq(items.id, itemId), eq(items.ownerId, user.id)))
+		.from(groups)
+		.where(eq(groups.id, groupId))
 		.get();
 
-	if (ownedItem) {
-		return new Response(
-			JSON.stringify({
-				...ownedItem,
-				createdAt: ownedItem.createdAt?.toISOString() ?? null,
-				updatedAt: ownedItem.updatedAt?.toISOString() ?? null,
-				isOwner: true,
-			}),
-			{
-				status: 200,
-				headers: { "Content-Type": "application/json" },
-			},
-		);
+	if (!group) {
+		return new Response(JSON.stringify({ error: "Group not found" }), {
+			status: 404,
+			headers: { "Content-Type": "application/json" },
+		});
 	}
 
-	// If not owner, check if user is a recipient via group membership
-	const sharedItem = await db
-		.select({
-			id: items.id,
-			ownerId: items.ownerId,
-			name: items.name,
-			url: items.url,
-			price: items.price,
-			notes: items.notes,
-			imageUrl: items.imageUrl,
-			createdAt: items.createdAt,
-			updatedAt: items.updatedAt,
-		})
-		.from(items)
-		.innerJoin(itemRecipients, eq(items.id, itemRecipients.itemId))
-		.innerJoin(groupMembers, eq(itemRecipients.groupId, groupMembers.groupId))
-		.where(and(eq(items.id, itemId), eq(groupMembers.userId, user.id)))
+	// Check if user is owner or member
+	const isOwner = group.ownerId === user.id;
+	const membership = await db
+		.select()
+		.from(groupMembers)
+		.where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
 		.get();
 
-	if (sharedItem) {
-		return new Response(
-			JSON.stringify({
-				...sharedItem,
-				createdAt: sharedItem.createdAt?.toISOString() ?? null,
-				updatedAt: sharedItem.updatedAt?.toISOString() ?? null,
-				isOwner: false,
-			}),
-			{
-				status: 200,
-				headers: { "Content-Type": "application/json" },
-			},
-		);
+	if (!isOwner && !membership) {
+		return new Response(JSON.stringify({ error: "Group not found" }), {
+			status: 404,
+			headers: { "Content-Type": "application/json" },
+		});
 	}
 
-	// Item not found or user has no access
-	return new Response(JSON.stringify({ error: "Item not found" }), {
-		status: 404,
+	// Serialize dates to ISO strings for JSON response
+	const responseData: GroupResponse = {
+		...group,
+		createdAt: group.createdAt?.toISOString() ?? null,
+		updatedAt: group.updatedAt?.toISOString() ?? null,
+	};
+
+	return new Response(JSON.stringify(responseData), {
+		status: 200,
 		headers: { "Content-Type": "application/json" },
 	});
 }
 
 /**
- * PUT /api/items/[id] - Update an item (owner only)
+ * PUT /api/groups/[id] - Update a group (owner only)
  */
 export async function PUT(context: APIContext) {
 	const db = createDb(context.locals.runtime.env.DB);
@@ -122,7 +103,6 @@ export async function PUT(context: APIContext) {
 		});
 	}
 
-	// Look up internal user by Clerk ID
 	const user = await db
 		.select()
 		.from(users)
@@ -136,23 +116,23 @@ export async function PUT(context: APIContext) {
 		});
 	}
 
-	const itemId = context.params.id;
-	if (!itemId) {
-		return new Response(JSON.stringify({ error: "Item ID required" }), {
+	const groupId = context.params.id;
+	if (!groupId) {
+		return new Response(JSON.stringify({ error: "Group ID required" }), {
 			status: 400,
 			headers: { "Content-Type": "application/json" },
 		});
 	}
 
-	// Check if item exists and belongs to user
-	const existingItem = await db
+	// Check if group exists and user is owner
+	const existingGroup = await db
 		.select()
-		.from(items)
-		.where(and(eq(items.id, itemId), eq(items.ownerId, user.id)))
+		.from(groups)
+		.where(and(eq(groups.id, groupId), eq(groups.ownerId, user.id)))
 		.get();
 
-	if (!existingItem) {
-		return new Response(JSON.stringify({ error: "Item not found" }), {
+	if (!existingGroup) {
+		return new Response(JSON.stringify({ error: "Group not found" }), {
 			status: 404,
 			headers: { "Content-Type": "application/json" },
 		});
@@ -168,9 +148,9 @@ export async function PUT(context: APIContext) {
 		});
 	}
 
-	let validatedData: UpdateItemInput;
+	let validatedData: UpdateGroupInput;
 	try {
-		validatedData = updateItemSchema.parse(body);
+		validatedData = updateGroupSchema.parse(body);
 	} catch (error) {
 		if (error instanceof ZodError) {
 			return new Response(
@@ -190,26 +170,30 @@ export async function PUT(context: APIContext) {
 	};
 
 	if (validatedData.name !== undefined) updateData.name = validatedData.name;
-	if (validatedData.url !== undefined) updateData.url = validatedData.url;
-	if (validatedData.price !== undefined) updateData.price = validatedData.price;
-	if (validatedData.notes !== undefined) updateData.notes = validatedData.notes;
-	if (validatedData.imageUrl !== undefined)
-		updateData.imageUrl = validatedData.imageUrl;
+	if (validatedData.description !== undefined)
+		updateData.description = validatedData.description;
 
-	const [updatedItem] = await db
-		.update(items)
+	const [updatedGroup] = await db
+		.update(groups)
 		.set(updateData)
-		.where(and(eq(items.id, itemId), eq(items.ownerId, user.id)))
+		.where(and(eq(groups.id, groupId), eq(groups.ownerId, user.id)))
 		.returning();
 
-	return new Response(JSON.stringify(updatedItem), {
+	// Serialize dates to ISO strings for JSON response
+	const responseData: GroupResponse = {
+		...updatedGroup,
+		createdAt: updatedGroup.createdAt?.toISOString() ?? null,
+		updatedAt: updatedGroup.updatedAt?.toISOString() ?? null,
+	};
+
+	return new Response(JSON.stringify(responseData), {
 		status: 200,
 		headers: { "Content-Type": "application/json" },
 	});
 }
 
 /**
- * DELETE /api/items/[id] - Delete an item (owner only)
+ * DELETE /api/groups/[id] - Delete a group (owner only)
  */
 export async function DELETE(context: APIContext) {
 	const db = createDb(context.locals.runtime.env.DB);
@@ -223,7 +207,6 @@ export async function DELETE(context: APIContext) {
 		});
 	}
 
-	// Look up internal user by Clerk ID
 	const user = await db
 		.select()
 		.from(users)
@@ -237,31 +220,32 @@ export async function DELETE(context: APIContext) {
 		});
 	}
 
-	const itemId = context.params.id;
-	if (!itemId) {
-		return new Response(JSON.stringify({ error: "Item ID required" }), {
+	const groupId = context.params.id;
+	if (!groupId) {
+		return new Response(JSON.stringify({ error: "Group ID required" }), {
 			status: 400,
 			headers: { "Content-Type": "application/json" },
 		});
 	}
 
-	// Check if item exists and belongs to user
-	const existingItem = await db
+	// Check if group exists and user is owner
+	const existingGroup = await db
 		.select()
-		.from(items)
-		.where(and(eq(items.id, itemId), eq(items.ownerId, user.id)))
+		.from(groups)
+		.where(and(eq(groups.id, groupId), eq(groups.ownerId, user.id)))
 		.get();
 
-	if (!existingItem) {
-		return new Response(JSON.stringify({ error: "Item not found" }), {
+	if (!existingGroup) {
+		return new Response(JSON.stringify({ error: "Group not found" }), {
 			status: 404,
 			headers: { "Content-Type": "application/json" },
 		});
 	}
 
+	// Delete the group (group_members will cascade delete due to onDelete: "cascade")
 	await db
-		.delete(items)
-		.where(and(eq(items.id, itemId), eq(items.ownerId, user.id)));
+		.delete(groups)
+		.where(and(eq(groups.id, groupId), eq(groups.ownerId, user.id)));
 
 	return new Response(null, { status: 204 });
 }
