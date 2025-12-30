@@ -1,0 +1,7 @@
+# Clerk Authentication
+# Get these from https://dashboard.clerk.com
+PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
+CLERK_SECRET_KEY=sk_test_your_key_here
+
+# Webhook signing secret (optional, for webhook verification)
+# CLERK_WEBHOOK_SECRET=whsec_your_secret_here
