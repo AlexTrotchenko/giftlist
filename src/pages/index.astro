@@ -1,15 +1,14 @@
 ---
-import { Button } from "@/components/ui/button";
-import Layout from "../layouts/Layout.astro";
+import AppLayout from "@/layouts/AppLayout.astro";
 ---
 
-<Layout>
-	<div class="flex flex-col items-center justify-center min-h-screen gap-8">
-		<h1 class="text-4xl font-bold">shadcn/ui + Astro</h1>
-		<div class="flex gap-4">
-			<Button client:load>Default</Button>
-			<Button client:load variant="outline">Outline</Button>
-			<Button client:load variant="destructive">Destructive</Button>
-		</div>
+<AppLayout title="GiftList - Share Your Wishlists">
+	<div class="container mx-auto flex flex-col items-center justify-center px-4 py-24 text-center">
+		<h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+			Share Your Wishlists
+		</h1>
+		<p class="mt-4 max-w-lg text-lg text-muted-foreground">
+			Create and share wishlists with friends and family. Never get duplicate gifts again.
+		</p>
 	</div>
-</Layout>
+</AppLayout>

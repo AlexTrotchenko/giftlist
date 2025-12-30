@@ -14,7 +14,9 @@
  * ```
  */
 
-export { createClerkAdapter } from "./clerk-adapter";
+import { createClerkAdapter } from "./clerk-adapter";
+
+export { createClerkAdapter };
 export type {
 	AuthAdapter,
 	AuthUser,

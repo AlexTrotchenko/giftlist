@@ -1,0 +1,54 @@
+---
+import { eq } from "drizzle-orm";
+import { WishlistPage } from "@/components/WishlistPage";
+import { items, users } from "@/db/schema";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { getAuthAdapter } from "@/lib/auth";
+import { createDb } from "@/lib/db";
+
+const db = createDb(Astro.locals.runtime.env.DB);
+const auth = getAuthAdapter(Astro.locals.runtime.env);
+
+const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
+
+if (!authUser) {
+	return Astro.redirect("/");
+}
+
+// Look up internal user by Clerk ID, create if doesn't exist (handles missing webhook)
+let user = await db
+	.select()
+	.from(users)
+	.where(eq(users.clerkId, authUser.providerId))
+	.get();
+
+if (!user) {
+	// User authenticated but not in DB (webhook not received) - create them
+	const [newUser] = await db
+		.insert(users)
+		.values({
+			clerkId: authUser.providerId,
+			email: authUser.email,
+			name: authUser.name,
+			avatarUrl: authUser.avatarUrl,
+		})
+		.returning();
+	user = newUser;
+}
+
+const userItems = await db
+	.select()
+	.from(items)
+	.where(eq(items.ownerId, user.id));
+
+// Serialize dates to ISO strings for React hydration
+const serializedItems = userItems.map((item) => ({
+	...item,
+	createdAt: item.createdAt?.toISOString() ?? null,
+	updatedAt: item.updatedAt?.toISOString() ?? null,
+}));
+---
+
+<AppLayout title="My Wishlist - GiftList">
+	<WishlistPage client:load initialItems={serializedItems} />
+</AppLayout>
