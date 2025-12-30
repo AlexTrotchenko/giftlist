@@ -1,19 +1,20 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gift, Plus } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ItemCard } from "@/components/ItemCard";
+import { ItemFormDialog } from "@/components/ItemFormDialog";
+import { Button } from "@/components/ui/button";
+import { useDeleteItem, useItems } from "@/hooks/useItems";
+import type { Item } from "@/lib/api";
 
-interface Item {
-	id: string;
-	ownerId: string;
-	name: string;
-	url: string | null;
-	price: number | null;
-	notes: string | null;
-	imageUrl: string | null;
-	createdAt: string | null;
-	updatedAt: string | null;
-}
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			staleTime: 1000 * 60 * 5,
+			refetchOnWindowFocus: false,
+		},
+	},
+});
 
 interface WishlistPageProps {
 	initialItems: Item[];
@@ -38,28 +39,38 @@ function EmptyState({ onAddItem }: { onAddItem: () => void }) {
 	);
 }
 
-export function WishlistPage({ initialItems }: WishlistPageProps) {
-	const [items, _setItems] = useState<Item[]>(initialItems);
+function WishlistContent({ initialItems }: WishlistPageProps) {
+	const { data: items = [] } = useItems(initialItems);
+	const deleteItem = useDeleteItem();
+
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [editingItem, setEditingItem] = useState<Item | null>(null);
 
 	const handleAddItem = () => {
-		// TODO: Open add item modal/form (giftlist-6dc will implement this)
-		console.log("Add item clicked");
+		setEditingItem(null);
+		setDialogOpen(true);
 	};
 
 	const handleEditItem = (item: Item) => {
-		// TODO: Open edit item modal/form (giftlist-6dc will implement this)
-		console.log("Edit item clicked", item.id);
+		setEditingItem(item);
+		setDialogOpen(true);
 	};
 
-	const handleDeleteItem = (item: Item) => {
-		// TODO: Implement delete confirmation dialog
-		console.log("Delete item clicked", item.id);
+	const handleDeleteItem = async (item: Item) => {
+		if (window.confirm(`Delete "${item.name}"?`)) {
+			await deleteItem.mutateAsync(item.id);
+		}
 	};
 
 	if (items.length === 0) {
 		return (
 			<div className="container mx-auto max-w-screen-xl px-4 py-8">
 				<EmptyState onAddItem={handleAddItem} />
+				<ItemFormDialog
+					open={dialogOpen}
+					onOpenChange={setDialogOpen}
+					item={editingItem}
+				/>
 			</div>
 		);
 	}
@@ -84,6 +95,20 @@ export function WishlistPage({ initialItems }: WishlistPageProps) {
 					/>
 				))}
 			</div>
+
+			<ItemFormDialog
+				open={dialogOpen}
+				onOpenChange={setDialogOpen}
+				item={editingItem}
+			/>
 		</div>
+	);
+}
+
+export function WishlistPage({ initialItems }: WishlistPageProps) {
+	return (
+		<QueryClientProvider client={queryClient}>
+			<WishlistContent initialItems={initialItems} />
+		</QueryClientProvider>
 	);
 }

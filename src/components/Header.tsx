@@ -1,7 +1,7 @@
 import {
-	SignInButton,
 	SignedIn,
 	SignedOut,
+	SignInButton,
 	UserButton,
 } from "@clerk/astro/react";
 import { Gift } from "lucide-react";
