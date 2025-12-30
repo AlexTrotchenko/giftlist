@@ -29,6 +29,16 @@
 			"database_id": "afc6a33a-de69-465e-8f69-916cf8e71c85",
 			"migrations_dir": "./drizzle"
 		}
+	],
+	/**
+	 * R2 Object Storage
+	 * https://developers.cloudflare.com/r2/
+	 */
+	"r2_buckets": [
+		{
+			"binding": "R2",
+			"bucket_name": "giftlist-images"
+		}
 	]
 	/**
 	 * Smart Placement

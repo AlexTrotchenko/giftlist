@@ -1,4 +1,5 @@
 import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import type { ItemResponse } from "@/db/types";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -8,22 +9,10 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 
-interface Item {
-	id: string;
-	ownerId: string;
-	name: string;
-	url: string | null;
-	price: number | null;
-	notes: string | null;
-	imageUrl: string | null;
-	createdAt: string | null;
-	updatedAt: string | null;
-}
-
 interface ItemCardProps {
-	item: Item;
-	onEdit: (item: Item) => void;
-	onDelete: (item: Item) => void;
+	item: ItemResponse;
+	onEdit: (item: ItemResponse) => void;
+	onDelete: (item: ItemResponse) => void;
 }
 
 function formatPrice(cents: number): string {
@@ -37,17 +26,21 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 	return (
 		<Card className="group overflow-hidden transition-shadow hover:shadow-md">
 			{/* Image or placeholder */}
-			{item.imageUrl ? (
-				<img
-					src={item.imageUrl}
-					alt={item.name}
-					className="h-40 w-full object-cover"
-				/>
-			) : (
-				<div className="flex h-40 w-full items-center justify-center bg-muted">
-					<span className="text-sm text-muted-foreground">No image</span>
-				</div>
-			)}
+			<div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+				{item.imageUrl ? (
+					<img
+						src={item.imageUrl}
+						alt={item.name}
+						loading="lazy"
+						decoding="async"
+						className="h-full w-full object-cover transition-opacity duration-300"
+					/>
+				) : (
+					<div className="flex h-full w-full items-center justify-center">
+						<span className="text-sm text-muted-foreground">No image</span>
+					</div>
+				)}
+			</div>
 
 			<CardHeader className="pb-2">
 				<div className="flex items-start justify-between gap-2">

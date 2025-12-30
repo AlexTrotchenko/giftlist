@@ -1,5 +1,23 @@
 import { z } from "zod";
 
+const imageUrlSchema = z
+	.string()
+	.max(2048)
+	.refine(
+		(val) => {
+			// Accept relative /api/images/ paths
+			if (val.startsWith("/api/images/")) return true;
+			// Accept full URLs
+			try {
+				new URL(val);
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		{ message: "Invalid image URL" },
+	);
+
 /**
  * Schema for creating a new wishlist item
  */
@@ -13,7 +31,7 @@ export const createItemSchema = z.object({
 		.nullable()
 		.optional(),
 	notes: z.string().max(1000, "Notes too long").nullable().optional(),
-	imageUrl: z.string().url("Invalid image URL").max(2048).nullable().optional(),
+	imageUrl: imageUrlSchema.nullable().optional(),
 });
 
 /**
@@ -34,7 +52,7 @@ export const updateItemSchema = z.object({
 		.nullable()
 		.optional(),
 	notes: z.string().max(1000, "Notes too long").nullable().optional(),
-	imageUrl: z.string().url("Invalid image URL").max(2048).nullable().optional(),
+	imageUrl: imageUrlSchema.nullable().optional(),
 });
 
 export type CreateItemInput = z.infer<typeof createItemSchema>;

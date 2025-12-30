@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ImageUpload";
 import { useCreateItem, useUpdateItem } from "@/hooks/useItems";
 import type { Item } from "@/lib/api";
 import { createItemSchema, updateItemSchema } from "@/lib/validations/item";
@@ -26,6 +27,7 @@ interface FormData {
 	url: string;
 	price: string;
 	notes: string;
+	imageUrl: string | null;
 }
 
 interface FormErrors {
@@ -33,6 +35,7 @@ interface FormErrors {
 	url?: string;
 	price?: string;
 	notes?: string;
+	imageUrl?: string;
 }
 
 function parsePrice(value: string): number | null {
@@ -61,6 +64,7 @@ export function ItemFormDialog({
 		url: "",
 		price: "",
 		notes: "",
+		imageUrl: null,
 	});
 	const [errors, setErrors] = useState<FormErrors>({});
 
@@ -72,9 +76,10 @@ export function ItemFormDialog({
 					url: item.url ?? "",
 					price: formatPriceForInput(item.price),
 					notes: item.notes ?? "",
+					imageUrl: item.imageUrl ?? null,
 				});
 			} else {
-				setFormData({ name: "", url: "", price: "", notes: "" });
+				setFormData({ name: "", url: "", price: "", notes: "", imageUrl: null });
 			}
 			setErrors({});
 		}
@@ -88,6 +93,7 @@ export function ItemFormDialog({
 			url: formData.url || null,
 			price: parsePrice(formData.price),
 			notes: formData.notes || null,
+			imageUrl: formData.imageUrl,
 		};
 
 		const schema = isEditing ? updateItemSchema : createItemSchema;
@@ -120,6 +126,7 @@ export function ItemFormDialog({
 			url: formData.url || null,
 			price: parsePrice(formData.price),
 			notes: formData.notes || null,
+			imageUrl: formData.imageUrl,
 		};
 
 		try {
@@ -166,6 +173,20 @@ export function ItemFormDialog({
 							/>
 							{errors.name && (
 								<p className="text-sm text-destructive">{errors.name}</p>
+							)}
+						</div>
+
+						<div className="grid gap-2">
+							<Label>Image</Label>
+							<ImageUpload
+								value={formData.imageUrl}
+								onChange={(url) =>
+									setFormData((prev) => ({ ...prev, imageUrl: url }))
+								}
+								disabled={isLoading}
+							/>
+							{errors.imageUrl && (
+								<p className="text-sm text-destructive">{errors.imageUrl}</p>
 							)}
 						</div>
 

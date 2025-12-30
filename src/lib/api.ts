@@ -1,16 +1,7 @@
+import type { ItemResponse } from "@/db/types";
 import type { CreateItemInput, UpdateItemInput } from "@/lib/validations/item";
 
-export interface Item {
-	id: string;
-	ownerId: string;
-	name: string;
-	url: string | null;
-	price: number | null;
-	notes: string | null;
-	imageUrl: string | null;
-	createdAt: string | null;
-	updatedAt: string | null;
-}
+export type { ItemResponse as Item } from "@/db/types";
 
 export interface ApiError {
 	error: string;
@@ -25,30 +16,30 @@ async function handleResponse<T>(response: Response): Promise<T> {
 	return response.json();
 }
 
-export async function fetchItems(): Promise<Item[]> {
+export async function fetchItems(): Promise<ItemResponse[]> {
 	const response = await fetch("/api/items");
-	return handleResponse<Item[]>(response);
+	return handleResponse<ItemResponse[]>(response);
 }
 
-export async function createItem(data: CreateItemInput): Promise<Item> {
+export async function createItem(data: CreateItemInput): Promise<ItemResponse> {
 	const response = await fetch("/api/items", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(data),
 	});
-	return handleResponse<Item>(response);
+	return handleResponse<ItemResponse>(response);
 }
 
 export async function updateItem(
 	id: string,
 	data: UpdateItemInput,
-): Promise<Item> {
+): Promise<ItemResponse> {
 	const response = await fetch(`/api/items/${id}`, {
 		method: "PUT",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(data),
 	});
-	return handleResponse<Item>(response);
+	return handleResponse<ItemResponse>(response);
 }
 
 export async function deleteItem(id: string): Promise<void> {

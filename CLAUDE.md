@@ -45,6 +45,13 @@ npm run cf-typegen   # Regenerate Cloudflare Worker type definitions
 
 **Path Aliases:** `@/*` resolves to `src/*`
 
+**Types:**
+- Use Drizzle inferred types from `@/db/types`
+- `Item`, `User` - database types (with Date objects)
+- `ItemResponse`, `UserResponse` - API response types (dates as strings)
+- Frontend components should use `*Response` types for JSON data
+- Never define manual interfaces for DB entities; extend from Drizzle types
+
 ## Issue Tracking
 
 This project uses beads (`bd`) for AI-supervised issue tracking. See `AGENTS.md` for the mandatory session workflow including issue updates and pushing changes.
