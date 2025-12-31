@@ -1,0 +1,128 @@
+---
+import { and, eq } from "drizzle-orm";
+import { GroupDetailPage } from "@/components/GroupDetailPage";
+import { groupMembers, groups, invitations, users } from "@/db/schema";
+import type { GroupMemberResponse, GroupResponse, InvitationResponse } from "@/db/types";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { getAuthAdapter } from "@/lib/auth";
+import { createDb } from "@/lib/db";
+
+const db = createDb(Astro.locals.runtime.env.DB);
+const auth = getAuthAdapter(Astro.locals.runtime.env);
+
+const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
+
+if (!authUser) {
+	return Astro.redirect("/");
+}
+
+// Look up internal user by Clerk ID, create if doesn't exist
+let user = await db
+	.select()
+	.from(users)
+	.where(eq(users.clerkId, authUser.providerId))
+	.get();
+
+if (!user) {
+	const [newUser] = await db
+		.insert(users)
+		.values({
+			clerkId: authUser.providerId,
+			email: authUser.email,
+			name: authUser.name,
+			avatarUrl: authUser.avatarUrl,
+		})
+		.returning();
+	user = newUser;
+}
+
+const groupId = Astro.params.id;
+if (!groupId) {
+	return Astro.redirect("/groups");
+}
+
+// Get the group
+const group = await db
+	.select()
+	.from(groups)
+	.where(eq(groups.id, groupId))
+	.get();
+
+if (!group) {
+	return Astro.redirect("/groups");
+}
+
+// Check if user is owner or member
+const isOwner = group.ownerId === user.id;
+const membership = await db
+	.select()
+	.from(groupMembers)
+	.where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
+	.get();
+
+if (!isOwner && !membership) {
+	return Astro.redirect("/groups");
+}
+
+// Get the current user's role
+const currentUserRole = isOwner ? "owner" : (membership?.role ?? "member");
+const canManage = currentUserRole === "owner" || currentUserRole === "admin";
+
+// Get all members with user details
+const members = await db
+	.select({
+		id: groupMembers.id,
+		groupId: groupMembers.groupId,
+		userId: groupMembers.userId,
+		role: groupMembers.role,
+		joinedAt: groupMembers.joinedAt,
+		user: {
+			id: users.id,
+			name: users.name,
+			email: users.email,
+			avatarUrl: users.avatarUrl,
+		},
+	})
+	.from(groupMembers)
+	.innerJoin(users, eq(groupMembers.userId, users.id))
+	.where(eq(groupMembers.groupId, groupId));
+
+// Get pending invitations if user can manage
+let groupInvitations: typeof invitations.$inferSelect[] = [];
+if (canManage) {
+	groupInvitations = await db
+		.select()
+		.from(invitations)
+		.where(and(eq(invitations.groupId, groupId), eq(invitations.status, "pending")));
+}
+
+// Serialize dates for React hydration
+const serializedGroup: GroupResponse = {
+	...group,
+	createdAt: group.createdAt?.toISOString() ?? null,
+	updatedAt: group.updatedAt?.toISOString() ?? null,
+};
+
+const serializedMembers = members.map((member) => ({
+	...member,
+	joinedAt: member.joinedAt?.toISOString() ?? null,
+}));
+
+const serializedInvitations: InvitationResponse[] = groupInvitations.map((inv) => ({
+	...inv,
+	createdAt: inv.createdAt?.toISOString() ?? null,
+	updatedAt: inv.updatedAt?.toISOString() ?? null,
+	expiresAt: inv.expiresAt.toISOString(),
+}));
+---
+
+<AppLayout title={`${group.name} - GiftList`}>
+	<GroupDetailPage
+		client:load
+		initialGroup={serializedGroup}
+		initialMembers={serializedMembers}
+		initialInvitations={serializedInvitations}
+		currentUserId={user.id}
+		currentUserRole={currentUserRole}
+	/>
+</AppLayout>

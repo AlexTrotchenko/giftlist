@@ -1,4 +1,5 @@
 import {
+	index,
 	integer,
 	sqliteTable,
 	text,
@@ -127,7 +128,7 @@ export const invitations = sqliteTable("invitations", {
 	),
 });
 
-// Item recipients - tracks which groups can see an item is claimed
+// Item recipients - tracks which groups can see an item
 export const itemRecipients = sqliteTable(
 	"item_recipients",
 	{
@@ -145,4 +146,37 @@ export const itemRecipients = sqliteTable(
 		),
 	},
 	(table) => [uniqueIndex("item_group_idx").on(table.itemId, table.groupId)],
+);
+
+// Claims - reserve items to prevent duplicate gifts
+// Per concept design: one claim per item (full claim) OR multiple partial claims
+// Claims are HIDDEN from item owner, VISIBLE to other recipients
+export const claims = sqliteTable(
+	"claims",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		itemId: text("item_id")
+			.notNull()
+			.references(() => items.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		// For partial claims: amount in cents (null = full claim)
+		amount: integer("amount"),
+		// Claim expiration (null = no expiration, default 30 days from creation)
+		expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+		createdAt: integer("created_at", { mode: "timestamp_ms" }).$defaultFn(
+			() => new Date(),
+		),
+	},
+	(table) => [
+		// Index for looking up claims by item (supports multiple partial claims per item)
+		index("claims_item_idx").on(table.itemId),
+		// Index for looking up claims by user ("my claims" view)
+		index("claims_user_idx").on(table.userId),
+		// Index for expiration queries (cleanup of expired claims)
+		index("claims_expires_idx").on(table.expiresAt),
+	],
 );

@@ -6,6 +6,7 @@ import {
 } from "@clerk/astro/react";
 import { Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InvitationsDropdown } from "@/components/InvitationsDropdown";
 import { NotificationBell } from "@/components/NotificationBell";
 
 export function Header() {
@@ -47,6 +48,7 @@ export function Header() {
 						</SignInButton>
 					</SignedOut>
 					<SignedIn>
+						<InvitationsDropdown />
 						<NotificationBell />
 						<UserButton
 							appearance={{

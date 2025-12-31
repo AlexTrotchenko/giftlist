@@ -1,4 +1,5 @@
 import type {
+	claims,
 	groupMembers,
 	groups,
 	invitations,
@@ -72,4 +73,18 @@ export type InvitationResponse = Omit<
 
 export type ItemRecipientResponse = Omit<ItemRecipient, "createdAt"> & {
 	createdAt: string | null;
+};
+
+// Claim types
+export type Claim = typeof claims.$inferSelect;
+export type NewClaim = typeof claims.$inferInsert;
+
+export type ClaimResponse = Omit<Claim, "createdAt" | "expiresAt"> & {
+	createdAt: string | null;
+	expiresAt: string | null;
+};
+
+// Claim with claimer user info for API responses
+export type ClaimWithUserResponse = ClaimResponse & {
+	user: Pick<UserResponse, "id" | "name" | "avatarUrl">;
 };

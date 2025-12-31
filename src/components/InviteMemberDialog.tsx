@@ -1,0 +1,168 @@
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { useInviteMember } from "@/hooks/useGroups";
+import { createInvitationSchema } from "@/lib/validations/invitation";
+
+interface InviteMemberDialogProps {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	groupId: string;
+}
+
+interface FormData {
+	email: string;
+	role: "member" | "admin";
+}
+
+interface FormErrors {
+	email?: string;
+	role?: string;
+}
+
+export function InviteMemberDialog({
+	open,
+	onOpenChange,
+	groupId,
+}: InviteMemberDialogProps) {
+	const inviteMember = useInviteMember(groupId);
+
+	const [formData, setFormData] = useState<FormData>({
+		email: "",
+		role: "member",
+	});
+	const [errors, setErrors] = useState<FormErrors>({});
+
+	useEffect(() => {
+		if (open) {
+			setFormData({ email: "", role: "member" });
+			setErrors({});
+		}
+	}, [open]);
+
+	const validateForm = (): boolean => {
+		const newErrors: FormErrors = {};
+
+		const result = createInvitationSchema.safeParse(formData);
+
+		if (!result.success) {
+			for (const issue of result.error.issues) {
+				const field = issue.path[0] as keyof FormErrors;
+				if (field && !newErrors[field]) {
+					newErrors[field] = issue.message;
+				}
+			}
+		}
+
+		setErrors(newErrors);
+		return Object.keys(newErrors).length === 0;
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		if (!validateForm()) return;
+
+		try {
+			await inviteMember.mutateAsync(formData);
+			onOpenChange(false);
+		} catch {
+			// Error is handled by mutation state
+		}
+	};
+
+	const isLoading = inviteMember.isPending;
+	const mutationError = inviteMember.error;
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-[425px]">
+				<form onSubmit={handleSubmit}>
+					<DialogHeader>
+						<DialogTitle>Invite Member</DialogTitle>
+						<DialogDescription>
+							Send an invitation to join this group. They will receive an email
+							with a link to accept.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="grid gap-4 py-4">
+						<div className="grid gap-2">
+							<Label htmlFor="email">
+								Email Address <span className="text-destructive">*</span>
+							</Label>
+							<Input
+								id="email"
+								type="email"
+								value={formData.email}
+								onChange={(e) =>
+									setFormData((prev) => ({ ...prev, email: e.target.value }))
+								}
+								placeholder="friend@example.com"
+								aria-invalid={!!errors.email}
+							/>
+							{errors.email && (
+								<p className="text-sm text-destructive">{errors.email}</p>
+							)}
+						</div>
+
+						<div className="grid gap-2">
+							<Label htmlFor="role">Role</Label>
+							<Select
+								value={formData.role}
+								onValueChange={(value: "member" | "admin") =>
+									setFormData((prev) => ({ ...prev, role: value }))
+								}
+							>
+								<SelectTrigger id="role">
+									<SelectValue placeholder="Select a role" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="member">Member</SelectItem>
+									<SelectItem value="admin">Admin</SelectItem>
+								</SelectContent>
+							</Select>
+							<p className="text-xs text-muted-foreground">
+								Admins can invite and remove members.
+							</p>
+						</div>
+
+						{mutationError && (
+							<p className="text-sm text-destructive">{mutationError.message}</p>
+						)}
+					</div>
+
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+							disabled={isLoading}
+						>
+							Cancel
+						</Button>
+						<Button type="submit" disabled={isLoading}>
+							{isLoading ? "Sending..." : "Send Invitation"}
+						</Button>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
+	);
+}

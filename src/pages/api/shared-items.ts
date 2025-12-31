@@ -1,7 +1,14 @@
 import type { APIContext } from "astro";
-import { and, eq, ne } from "drizzle-orm";
-import { groupMembers, groups, itemRecipients, items, users } from "@/db/schema";
-import type { ItemResponse } from "@/db/types";
+import { and, eq, inArray, ne } from "drizzle-orm";
+import {
+	claims,
+	groupMembers,
+	groups,
+	itemRecipients,
+	items,
+	users,
+} from "@/db/schema";
+import type { ClaimWithUserResponse, ItemResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 
@@ -74,8 +81,44 @@ export async function GET(context: APIContext) {
 			item: ItemResponse;
 			owner: { id: string; name: string | null; email: string };
 			sharedVia: { groupId: string; groupName: string }[];
+			claims: ClaimWithUserResponse[];
+			claimableAmount: number | null;
 		}
 	>();
+
+	// Get unique item IDs to fetch claims
+	const itemIds = [...new Set(sharedItems.map((row) => row.id))];
+
+	// Fetch claims for all shared items with claimer user info
+	// Claims are visible to recipients (non-owners) per visibility rules
+	const itemClaims =
+		itemIds.length > 0
+			? await db
+					.select({
+						id: claims.id,
+						itemId: claims.itemId,
+						userId: claims.userId,
+						amount: claims.amount,
+						expiresAt: claims.expiresAt,
+						createdAt: claims.createdAt,
+						userName: users.name,
+						userAvatarUrl: users.avatarUrl,
+					})
+					.from(claims)
+					.innerJoin(users, eq(claims.userId, users.id))
+					.where(inArray(claims.itemId, itemIds))
+			: [];
+
+	// Group claims by itemId for efficient lookup
+	const claimsByItemId = new Map<string, typeof itemClaims>();
+	for (const claim of itemClaims) {
+		const existing = claimsByItemId.get(claim.itemId);
+		if (existing) {
+			existing.push(claim);
+		} else {
+			claimsByItemId.set(claim.itemId, [claim]);
+		}
+	}
 
 	for (const row of sharedItems) {
 		const existing = itemMap.get(row.id);
@@ -86,6 +129,40 @@ export async function GET(context: APIContext) {
 				groupName: row.groupName,
 			});
 		} else {
+			// Get claims for this item
+			const rawClaims = claimsByItemId.get(row.id) ?? [];
+			const formattedClaims: ClaimWithUserResponse[] = rawClaims.map((c) => ({
+				id: c.id,
+				itemId: c.itemId,
+				userId: c.userId,
+				amount: c.amount,
+				expiresAt: c.expiresAt?.toISOString() ?? null,
+				createdAt: c.createdAt?.toISOString() ?? null,
+				user: {
+					id: c.userId,
+					name: c.userName,
+					avatarUrl: c.userAvatarUrl,
+				},
+			}));
+
+			// Calculate claimable amount for partial claims
+			// If item has no price, claimableAmount is null
+			// If fully claimed (any claim with amount=null), claimableAmount is 0
+			// Otherwise, claimableAmount = price - sum of partial claim amounts
+			let claimableAmount: number | null = null;
+			if (row.price !== null) {
+				const hasFullClaim = rawClaims.some((c) => c.amount === null);
+				if (hasFullClaim) {
+					claimableAmount = 0;
+				} else {
+					const claimedTotal = rawClaims.reduce(
+						(sum, c) => sum + (c.amount ?? 0),
+						0,
+					);
+					claimableAmount = Math.max(0, row.price - claimedTotal);
+				}
+			}
+
 			itemMap.set(row.id, {
 				item: {
 					id: row.id,
@@ -109,6 +186,8 @@ export async function GET(context: APIContext) {
 						groupName: row.groupName,
 					},
 				],
+				claims: formattedClaims,
+				claimableAmount,
 			});
 		}
 	}

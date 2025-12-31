@@ -12,7 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/ImageUpload";
+import { RecipientsPicker } from "@/components/RecipientsPicker";
 import { useCreateItem, useUpdateItem } from "@/hooks/useItems";
+import { useGroups } from "@/hooks/useGroups";
+import {
+	useItemRecipients,
+	useSetItemRecipients,
+} from "@/hooks/useItemRecipients";
 import type { Item } from "@/lib/api";
 import { createItemSchema, updateItemSchema } from "@/lib/validations/item";
 
@@ -28,6 +34,7 @@ interface FormData {
 	price: string;
 	notes: string;
 	imageUrl: string | null;
+	recipientGroupIds: string[];
 }
 
 interface FormErrors {
@@ -58,6 +65,9 @@ export function ItemFormDialog({
 	const isEditing = !!item;
 	const createItem = useCreateItem();
 	const updateItem = useUpdateItem();
+	const { data: groups = [] } = useGroups();
+	const { data: existingRecipients = [] } = useItemRecipients(item?.id);
+	const setItemRecipients = useSetItemRecipients();
 
 	const [formData, setFormData] = useState<FormData>({
 		name: "",
@@ -65,6 +75,7 @@ export function ItemFormDialog({
 		price: "",
 		notes: "",
 		imageUrl: null,
+		recipientGroupIds: [],
 	});
 	const [errors, setErrors] = useState<FormErrors>({});
 
@@ -77,13 +88,21 @@ export function ItemFormDialog({
 					price: formatPriceForInput(item.price),
 					notes: item.notes ?? "",
 					imageUrl: item.imageUrl ?? null,
+					recipientGroupIds: existingRecipients.map((r) => r.groupId),
 				});
 			} else {
-				setFormData({ name: "", url: "", price: "", notes: "", imageUrl: null });
+				setFormData({
+					name: "",
+					url: "",
+					price: "",
+					notes: "",
+					imageUrl: null,
+					recipientGroupIds: [],
+				});
 			}
 			setErrors({});
 		}
-	}, [open, item]);
+	}, [open, item, existingRecipients]);
 
 	const validateForm = (): boolean => {
 		const newErrors: FormErrors = {};
@@ -130,19 +149,42 @@ export function ItemFormDialog({
 		};
 
 		try {
+			let itemId: string;
+
 			if (isEditing && item) {
 				await updateItem.mutateAsync({ id: item.id, data });
+				itemId = item.id;
 			} else {
-				await createItem.mutateAsync(data);
+				const newItem = await createItem.mutateAsync(data);
+				itemId = newItem.id;
 			}
+
+			// Update recipients if there are groups to manage
+			const currentGroupIds = existingRecipients.map((r) => r.groupId);
+			const hasChanges =
+				formData.recipientGroupIds.length !== currentGroupIds.length ||
+				formData.recipientGroupIds.some((id) => !currentGroupIds.includes(id));
+
+			if (hasChanges && (formData.recipientGroupIds.length > 0 || currentGroupIds.length > 0)) {
+				await setItemRecipients.mutateAsync({
+					itemId,
+					groupIds: formData.recipientGroupIds,
+					currentGroupIds,
+				});
+			}
+
 			onOpenChange(false);
 		} catch {
 			// Error is handled by mutation state
 		}
 	};
 
-	const isLoading = createItem.isPending || updateItem.isPending;
-	const mutationError = createItem.error || updateItem.error;
+	const isLoading =
+		createItem.isPending ||
+		updateItem.isPending ||
+		setItemRecipients.isPending;
+	const mutationError =
+		createItem.error || updateItem.error || setItemRecipients.error;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -242,6 +284,23 @@ export function ItemFormDialog({
 								<p className="text-sm text-destructive">{errors.notes}</p>
 							)}
 						</div>
+
+						{groups.length > 0 && (
+							<div className="grid gap-2">
+								<Label>Share with</Label>
+								<RecipientsPicker
+									groups={groups}
+									selectedGroupIds={formData.recipientGroupIds}
+									onSelectedChange={(groupIds) =>
+										setFormData((prev) => ({
+											...prev,
+											recipientGroupIds: groupIds,
+										}))
+									}
+									disabled={isLoading}
+								/>
+							</div>
+						)}
 
 						{mutationError && (
 							<p className="text-sm text-destructive">

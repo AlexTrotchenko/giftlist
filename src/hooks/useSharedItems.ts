@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ItemResponse } from "@/db/types";
+import type { ClaimWithUserResponse, ItemResponse } from "@/db/types";
 
 export const SHARED_ITEMS_QUERY_KEY = ["sharedItems"] as const;
 
@@ -18,6 +18,8 @@ export interface SharedItem {
 	item: ItemResponse;
 	owner: SharedItemOwner;
 	sharedVia: SharedItemGroup[];
+	claims: ClaimWithUserResponse[];
+	claimableAmount: number | null;
 }
 
 interface ApiError {

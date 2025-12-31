@@ -1,6 +1,7 @@
-import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Trash2, Users } from "lucide-react";
 import type { ItemResponse } from "@/db/types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -8,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useItemRecipients } from "@/hooks/useItemRecipients";
 
 interface ItemCardProps {
 	item: ItemResponse;
@@ -23,6 +25,8 @@ function formatPrice(cents: number): string {
 }
 
 export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
+	const { data: recipients = [] } = useItemRecipients(item.id);
+
 	return (
 		<Card className="group overflow-hidden transition-shadow hover:shadow-md">
 			{/* Image or placeholder */}
@@ -53,11 +57,25 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 				</div>
 			</CardHeader>
 
-			<CardContent className="flex-1 py-0">
+			<CardContent className="flex-1 space-y-2 py-0">
 				{item.notes && (
 					<p className="line-clamp-2 text-sm text-muted-foreground">
 						{item.notes}
 					</p>
+				)}
+				{recipients.length > 0 && (
+					<div className="flex flex-wrap items-center gap-1">
+						<Users className="size-3.5 text-muted-foreground" />
+						{recipients.map((recipient) => (
+							<Badge
+								key={recipient.id}
+								variant="secondary"
+								className="text-xs"
+							>
+								{recipient.group.name}
+							</Badge>
+						))}
+					</div>
 				)}
 			</CardContent>
 

@@ -203,13 +203,23 @@ export function createNotificationService(
 			const { userId, inviteeEmail, inviterName, groupName, inviteUrl, data } =
 				input;
 
-			// Send the email first
-			const emailResult = await emailClient.sendInvitation({
-				to: inviteeEmail,
-				inviterName,
-				groupName,
-				inviteUrl,
-			});
+			// Send the email (skip if no email client configured or in dev without verified domain)
+			let emailResult: SendEmailResult;
+			try {
+				emailResult = await emailClient.sendInvitation({
+					to: inviteeEmail,
+					inviterName,
+					groupName,
+					inviteUrl,
+				});
+				// Log but don't fail if email fails - notifications still work
+				if (!emailResult.success) {
+					console.warn("Email send failed (non-fatal):", emailResult.error);
+				}
+			} catch (err) {
+				console.warn("Email send skipped:", err instanceof Error ? err.message : err);
+				emailResult = { success: false, error: "Email skipped in dev" };
+			}
 
 			// If userId is provided, also create an in-app notification
 			let notificationResult: CreateNotificationResult | undefined;
