@@ -14,8 +14,12 @@ export default defineConfig({
 		platformProxy: {
 			enabled: true,
 		},
-
 		imageService: "cloudflare",
+		// Custom worker entrypoint to add scheduled handler for cron triggers
+		workerEntryPoint: {
+			path: "./src/worker-entrypoint.ts",
+			namedExports: ["scheduled"],
+		},
 	}),
 
 	integrations: [clerk(), react()],

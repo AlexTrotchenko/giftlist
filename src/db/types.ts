@@ -88,3 +88,9 @@ export type ClaimResponse = Omit<Claim, "createdAt" | "expiresAt"> & {
 export type ClaimWithUserResponse = ClaimResponse & {
 	user: Pick<UserResponse, "id" | "name" | "avatarUrl">;
 };
+
+// Claim with item and owner info for "My Claims" view
+export type MyClaimResponse = ClaimResponse & {
+	item: Pick<ItemResponse, "id" | "name" | "imageUrl" | "url" | "price">;
+	owner: Pick<UserResponse, "id" | "name" | "avatarUrl">;
+};

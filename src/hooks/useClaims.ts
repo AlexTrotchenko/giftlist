@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ClaimResponse } from "@/db/types";
+import type { ClaimResponse, MyClaimResponse } from "@/db/types";
 import type { CreateClaimInput } from "@/lib/validations/claim";
 import { SHARED_ITEMS_QUERY_KEY } from "./useSharedItems";
 
@@ -9,7 +9,7 @@ interface ApiError {
 	error: string;
 }
 
-async function fetchMyClaims(): Promise<ClaimResponse[]> {
+async function fetchMyClaims(): Promise<MyClaimResponse[]> {
 	const response = await fetch("/api/claims");
 	if (!response.ok) {
 		const error: ApiError = await response.json();
@@ -70,7 +70,7 @@ export function useCreateClaim() {
 
 			// Snapshot previous values for rollback
 			const previousSharedItems = queryClient.getQueryData(SHARED_ITEMS_QUERY_KEY);
-			const previousClaims = queryClient.getQueryData<ClaimResponse[]>(MY_CLAIMS_QUERY_KEY);
+			const previousClaims = queryClient.getQueryData<MyClaimResponse[]>(MY_CLAIMS_QUERY_KEY);
 
 			return { previousSharedItems, previousClaims };
 		},
@@ -106,11 +106,11 @@ export function useReleaseClaim() {
 
 			// Snapshot previous value
 			const previousClaims =
-				queryClient.getQueryData<ClaimResponse[]>(MY_CLAIMS_QUERY_KEY);
+				queryClient.getQueryData<MyClaimResponse[]>(MY_CLAIMS_QUERY_KEY);
 
 			// Optimistically remove the claim
 			if (previousClaims) {
-				queryClient.setQueryData<ClaimResponse[]>(
+				queryClient.setQueryData<MyClaimResponse[]>(
 					MY_CLAIMS_QUERY_KEY,
 					previousClaims.filter((c) => c.id !== claimId),
 				);

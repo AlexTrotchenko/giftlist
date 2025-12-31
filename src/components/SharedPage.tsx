@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gift } from "lucide-react";
 import { useMemo, useState } from "react";
+import { MyClaimsSection } from "@/components/MyClaimsSection";
 import { SharedItemCard } from "@/components/SharedItemCard";
 import {
 	Select,
@@ -15,8 +16,8 @@ import { useSharedItems } from "@/hooks/useSharedItems";
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
-			staleTime: 1000 * 60 * 5,
-			refetchOnWindowFocus: false,
+			staleTime: 0, // Always refetch on invalidation
+			refetchOnWindowFocus: true,
 		},
 	},
 });
@@ -99,6 +100,9 @@ function SharedContent({ initialItems, currentUserId }: SharedPageProps) {
 
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
+			{/* My Claims section - shows items user has claimed */}
+			<MyClaimsSection />
+
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold">Shared With Me</h1>
 				{groups.length > 1 && (

@@ -1,10 +1,11 @@
 import type { APIContext } from "astro";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, ne, sum } from "drizzle-orm";
 import { ZodError } from "zod";
 import { claims, groupMembers, itemRecipients, items, users } from "@/db/schema";
-import type { ClaimResponse } from "@/db/types";
+import type { ClaimResponse, MyClaimResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 import { type CreateClaimInput, createClaimSchema } from "@/lib/validations/claim";
 
 const CLAIM_EXPIRATION_DAYS = 30;
@@ -37,15 +38,47 @@ export async function GET(context: APIContext) {
 		});
 	}
 
+	// Fetch user's claims with item and owner details
 	const userClaims = await db
-		.select()
+		.select({
+			id: claims.id,
+			itemId: claims.itemId,
+			userId: claims.userId,
+			amount: claims.amount,
+			expiresAt: claims.expiresAt,
+			createdAt: claims.createdAt,
+			itemName: items.name,
+			itemImageUrl: items.imageUrl,
+			itemUrl: items.url,
+			itemPrice: items.price,
+			ownerId: users.id,
+			ownerName: users.name,
+			ownerAvatarUrl: users.avatarUrl,
+		})
 		.from(claims)
+		.innerJoin(items, eq(claims.itemId, items.id))
+		.innerJoin(users, eq(items.ownerId, users.id))
 		.where(eq(claims.userId, user.id));
 
-	const responseData: ClaimResponse[] = userClaims.map((claim) => ({
-		...claim,
-		createdAt: claim.createdAt?.toISOString() ?? null,
-		expiresAt: claim.expiresAt?.toISOString() ?? null,
+	const responseData: MyClaimResponse[] = userClaims.map((row) => ({
+		id: row.id,
+		itemId: row.itemId,
+		userId: row.userId,
+		amount: row.amount,
+		createdAt: row.createdAt?.toISOString() ?? null,
+		expiresAt: row.expiresAt?.toISOString() ?? null,
+		item: {
+			id: row.itemId,
+			name: row.itemName,
+			imageUrl: row.itemImageUrl,
+			url: row.itemUrl,
+			price: row.itemPrice,
+		},
+		owner: {
+			id: row.ownerId,
+			name: row.ownerName,
+			avatarUrl: row.ownerAvatarUrl,
+		},
 	}));
 
 	return new Response(JSON.stringify(responseData), {
@@ -185,6 +218,61 @@ export async function POST(context: APIContext) {
 		}
 	}
 
+	// For partial claims: validate amount doesn't exceed remaining claimable amount
+	if (!isFullClaim) {
+		// Partial claims require the item to have a price
+		if (item.price === null) {
+			return new Response(
+				JSON.stringify({ error: "Partial claims are only allowed for items with a price" }),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		// Check for any existing full claim (cannot add partial claims if fully claimed)
+		const existingFullClaim = await db
+			.select({ id: claims.id })
+			.from(claims)
+			.where(and(eq(claims.itemId, validatedData.itemId), isNull(claims.amount)))
+			.get();
+
+		if (existingFullClaim) {
+			return new Response(
+				JSON.stringify({ error: "This item has already been fully claimed" }),
+				{
+					status: 409,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		// Calculate total claimed amount using SUM aggregation
+		const [claimedResult] = await db
+			.select({ totalClaimed: sum(claims.amount) })
+			.from(claims)
+			.where(and(eq(claims.itemId, validatedData.itemId), isNotNull(claims.amount)));
+
+		const totalClaimed = Number(claimedResult?.totalClaimed ?? 0);
+		const remainingAmount = item.price - totalClaimed;
+
+		// Reject if claim would exceed item price
+		if (validatedData.amount! > remainingAmount) {
+			return new Response(
+				JSON.stringify({
+					error: "Claim amount exceeds remaining claimable amount",
+					remainingAmount,
+					requestedAmount: validatedData.amount,
+				}),
+				{
+					status: 409,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+	}
+
 	// Calculate expiration date (30 days from now)
 	const expiresAt = new Date();
 	expiresAt.setDate(expiresAt.getDate() + CLAIM_EXPIRATION_DAYS);
@@ -199,6 +287,35 @@ export async function POST(context: APIContext) {
 			expiresAt,
 		})
 		.returning();
+
+	// Notify recipients that the item was claimed (NEVER notify the owner)
+	// Get all recipients (group members who can see this item) except the owner and claimer
+	const recipients = await db
+		.selectDistinct({ userId: groupMembers.userId })
+		.from(itemRecipients)
+		.innerJoin(groupMembers, eq(itemRecipients.groupId, groupMembers.groupId))
+		.where(
+			and(
+				eq(itemRecipients.itemId, validatedData.itemId),
+				ne(groupMembers.userId, item.ownerId), // Never notify owner
+				ne(groupMembers.userId, user.id), // Don't notify the claimer themselves
+			),
+		);
+
+	// Send notifications asynchronously (don't block the response)
+	if (recipients.length > 0) {
+		Promise.all(
+			recipients.map((r) =>
+				createNotification(db, {
+					userId: r.userId,
+					type: "item_claimed",
+					title: "Item Claimed",
+					body: `"${item.name}" was claimed`,
+					data: { itemId: item.id, itemName: item.name },
+				}),
+			),
+		).catch((err) => console.error("Failed to send claim notifications:", err));
+	}
 
 	const responseData: ClaimResponse = {
 		...newClaim,

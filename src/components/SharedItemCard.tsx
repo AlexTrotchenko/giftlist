@@ -9,37 +9,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClaimButton } from "@/components/ClaimButton";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice, getExpirationText, isExpiringSoon } from "@/lib/utils";
 
 interface SharedItemCardProps {
 	sharedItem: SharedItem;
 	currentUserId: string;
-}
-
-function formatPrice(cents: number): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(cents / 100);
-}
-
-function isExpiringSoon(expiresAt: string | null): boolean {
-	if (!expiresAt) return false;
-	const expiryDate = new Date(expiresAt);
-	const now = new Date();
-	const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
-	return expiryDate.getTime() - now.getTime() < threeDaysMs;
-}
-
-function getExpirationText(expiresAt: string): string {
-	const expiryDate = new Date(expiresAt);
-	const now = new Date();
-	const diffMs = expiryDate.getTime() - now.getTime();
-	const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
-
-	if (diffDays <= 0) return "Expired";
-	if (diffDays === 1) return "Expires tomorrow";
-	return `Expires in ${diffDays} days`;
 }
 
 export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProps) {
@@ -182,6 +156,7 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 				)}
 				<ClaimButton
 					itemId={item.id}
+					itemName={item.name}
 					claims={claims}
 					claimableAmount={claimableAmount}
 					currentUserId={currentUserId}

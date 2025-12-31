@@ -1,10 +1,11 @@
 import type { APIContext } from "astro";
 import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
-import { claims, groupMembers, groups, itemRecipients, users } from "@/db/schema";
+import { claims, groupMembers, groups, itemRecipients, items, users } from "@/db/schema";
 import type { GroupResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb, safeInArray } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 import {
 	type UpdateGroupInput,
 	updateGroupSchema,
@@ -255,9 +256,28 @@ export async function DELETE(context: APIContext) {
 			.where(eq(groupMembers.groupId, groupId)),
 	]);
 
+	// Collect claims to notify before deleting
+	const claimsToNotify: Array<{ userId: string; itemId: string; itemName: string }> = [];
+
 	if (itemsInGroup.length > 0 && membersInGroup.length > 0) {
 		const itemIds = itemsInGroup.map((i) => i.itemId);
 		const memberIds = membersInGroup.map((m) => m.userId);
+
+		// Get the claims that will be deleted along with item names
+		const affectedClaims = await db
+			.select({
+				userId: claims.userId,
+				itemId: claims.itemId,
+				itemName: items.name,
+			})
+			.from(claims)
+			.innerJoin(items, eq(claims.itemId, items.id))
+			.where(
+				and(safeInArray(claims.userId, memberIds), safeInArray(claims.itemId, itemIds)),
+			);
+
+		claimsToNotify.push(...affectedClaims);
+
 		await db
 			.delete(claims)
 			.where(
@@ -269,6 +289,26 @@ export async function DELETE(context: APIContext) {
 	await db
 		.delete(groups)
 		.where(and(eq(groups.id, groupId), eq(groups.ownerId, user.id)));
+
+	// Notify claimers about their released claims
+	if (claimsToNotify.length > 0) {
+		Promise.all(
+			claimsToNotify.map((claim) =>
+				createNotification(db, {
+					userId: claim.userId,
+					type: "claim_released_access_lost",
+					title: "Claim Released",
+					body: `Your claim on "${claim.itemName}" has been released. The group "${existingGroup.name}" was deleted.`,
+					data: {
+						itemId: claim.itemId,
+						itemName: claim.itemName,
+						groupName: existingGroup.name,
+						reason: "group_deleted",
+					},
+				}),
+			),
+		).catch((err) => console.error("Failed to send claim access lost notifications:", err));
+	}
 
 	return new Response(null, { status: 204 });
 }

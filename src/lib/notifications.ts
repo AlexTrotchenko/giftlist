@@ -70,7 +70,9 @@ export type NotificationType =
 	| "item_purchased"
 	| "item_added"
 	| "item_deleted"
+	| "item_claimed"
 	| "claim_released"
+	| "claim_released_access_lost"
 	| "member_joined"
 	| "member_left"
 	| "reminder";
@@ -159,6 +161,41 @@ export interface ClaimsReleasedInput {
 	groupName: string;
 }
 
+/** Input for notifying recipients when an item is claimed */
+export interface ItemClaimedInput {
+	/** Item that was claimed */
+	itemId: string;
+	itemName: string;
+	/** Owner ID - NEVER notify the owner about claims */
+	ownerId: string;
+	/** User IDs of recipients who can see this item (group members) */
+	recipientUserIds: string[];
+}
+
+/** Input for notifying recipients when a claim is released */
+export interface ClaimReleasedInput {
+	/** Item that is now available */
+	itemId: string;
+	itemName: string;
+	/** Owner ID - NEVER notify the owner about claims */
+	ownerId: string;
+	/** User IDs of recipients who can see this item (group members) */
+	recipientUserIds: string[];
+}
+
+/** Input for notifying a claimer when they lose access to a claimed item */
+export interface ClaimAccessLostInput {
+	/** User ID of the claimer who lost access */
+	claimerId: string;
+	/** Item they had claimed */
+	itemId: string;
+	itemName: string;
+	/** Reason they lost access */
+	reason: "removed_from_group" | "owner_joined_group" | "item_unshared" | "group_deleted";
+	/** Group name for context */
+	groupName: string;
+}
+
 /** Notification service interface */
 export interface NotificationService {
 	createNotification(
@@ -177,6 +214,15 @@ export interface NotificationService {
 	notifyClaimsReleased(
 		input: ClaimsReleasedInput,
 	): Promise<CreateNotificationResult[]>;
+	notifyItemClaimed(
+		input: ItemClaimedInput,
+	): Promise<CreateNotificationResult[]>;
+	notifyClaimReleased(
+		input: ClaimReleasedInput,
+	): Promise<CreateNotificationResult[]>;
+	notifyClaimAccessLost(
+		input: ClaimAccessLostInput,
+	): Promise<CreateNotificationResult>;
 }
 
 /**
@@ -338,6 +384,73 @@ export function createNotificationService(
 			);
 
 			return results;
+		},
+
+		async notifyItemClaimed(
+			input: ItemClaimedInput,
+		): Promise<CreateNotificationResult[]> {
+			const { itemId, itemName, ownerId, recipientUserIds } = input;
+
+			// Filter out the owner - NEVER notify owner about claims
+			const recipientsToNotify = recipientUserIds.filter((id) => id !== ownerId);
+
+			const results = await Promise.all(
+				recipientsToNotify.map((userId) =>
+					this.createNotification({
+						userId,
+						type: "item_claimed",
+						title: "Item Claimed",
+						body: `"${itemName}" was claimed`,
+						data: { itemId, itemName },
+					}),
+				),
+			);
+
+			return results;
+		},
+
+		async notifyClaimReleased(
+			input: ClaimReleasedInput,
+		): Promise<CreateNotificationResult[]> {
+			const { itemId, itemName, ownerId, recipientUserIds } = input;
+
+			// Filter out the owner - NEVER notify owner about claims
+			const recipientsToNotify = recipientUserIds.filter((id) => id !== ownerId);
+
+			const results = await Promise.all(
+				recipientsToNotify.map((userId) =>
+					this.createNotification({
+						userId,
+						type: "claim_released",
+						title: "Item Available",
+						body: `"${itemName}" is available again`,
+						data: { itemId, itemName },
+					}),
+				),
+			);
+
+			return results;
+		},
+
+		async notifyClaimAccessLost(
+			input: ClaimAccessLostInput,
+		): Promise<CreateNotificationResult> {
+			const { claimerId, itemId, itemName, reason, groupName } = input;
+
+			const reasonMessages: Record<typeof reason, string> = {
+				removed_from_group: `You left "${groupName}"`,
+				owner_joined_group: `The item owner joined "${groupName}"`,
+				item_unshared: `The item was unshared from "${groupName}"`,
+				group_deleted: `The group "${groupName}" was deleted`,
+			};
+
+			return this.createNotification({
+				userId: claimerId,
+				type: "claim_released_access_lost",
+				title: "Claim Released",
+				body: `Your claim on "${itemName}" has been released. ${reasonMessages[reason]}.`,
+				data: { itemId, itemName, groupName, reason },
+			});
 		},
 	};
 }

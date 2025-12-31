@@ -1,8 +1,9 @@
 import type { APIContext } from "astro";
 import { and, eq } from "drizzle-orm";
-import { claims, groupMembers, groups, itemRecipients, users } from "@/db/schema";
+import { claims, groupMembers, groups, itemRecipients, items, users } from "@/db/schema";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb, safeInArray } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * DELETE /api/groups/[id]/members/[userId] - Remove a member from a group
@@ -152,8 +153,27 @@ export async function DELETE(context: APIContext) {
 		.from(itemRecipients)
 		.where(eq(itemRecipients.groupId, groupId));
 
+	// Collect claims to notify before deleting
+	const claimsToNotify: Array<{ userId: string; itemId: string; itemName: string }> = [];
+
 	if (itemsInGroup.length > 0) {
 		const itemIds = itemsInGroup.map((i) => i.itemId);
+
+		// Get the claims that will be deleted along with item names
+		const affectedClaims = await db
+			.select({
+				userId: claims.userId,
+				itemId: claims.itemId,
+				itemName: items.name,
+			})
+			.from(claims)
+			.innerJoin(items, eq(claims.itemId, items.id))
+			.where(
+				and(eq(claims.userId, targetUserId), safeInArray(claims.itemId, itemIds)),
+			);
+
+		claimsToNotify.push(...affectedClaims);
+
 		await db
 			.delete(claims)
 			.where(
@@ -170,6 +190,26 @@ export async function DELETE(context: APIContext) {
 				eq(groupMembers.userId, targetUserId),
 			),
 		);
+
+	// Notify the removed user about their released claims
+	if (claimsToNotify.length > 0) {
+		Promise.all(
+			claimsToNotify.map((claim) =>
+				createNotification(db, {
+					userId: claim.userId,
+					type: "claim_released_access_lost",
+					title: "Claim Released",
+					body: `Your claim on "${claim.itemName}" has been released. You left "${group.name}".`,
+					data: {
+						itemId: claim.itemId,
+						itemName: claim.itemName,
+						groupName: group.name,
+						reason: "removed_from_group",
+					},
+				}),
+			),
+		).catch((err) => console.error("Failed to send claim access lost notifications:", err));
+	}
 
 	return new Response(null, { status: 204 });
 }

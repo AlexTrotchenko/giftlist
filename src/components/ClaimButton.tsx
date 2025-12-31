@@ -2,12 +2,14 @@ import { useState } from "react";
 import { AlertTriangle, Check, Loader2, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PartialClaimDialog } from "@/components/PartialClaimDialog";
 import { useCreateClaim, useReleaseClaim } from "@/hooks/useClaims";
 import type { ClaimWithUserResponse } from "@/db/types";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice, isExpiringSoon } from "@/lib/utils";
 
 interface ClaimButtonProps {
 	itemId: string;
+	itemName: string;
 	claims: ClaimWithUserResponse[];
 	claimableAmount: number | null;
 	currentUserId: string;
@@ -20,21 +22,6 @@ type ClaimState =
 	| "fully_claimed_by_me"
 	| "fully_claimed_by_other"
 	| "expiring_soon";
-
-function isExpiringSoon(expiresAt: string | null): boolean {
-	if (!expiresAt) return false;
-	const expiryDate = new Date(expiresAt);
-	const now = new Date();
-	const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
-	return expiryDate.getTime() - now.getTime() < threeDaysMs;
-}
-
-function formatPrice(cents: number): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(cents / 100);
-}
 
 function getClaimState(
 	claims: ClaimWithUserResponse[],
@@ -88,12 +75,14 @@ function getClaimState(
 
 export function ClaimButton({
 	itemId,
+	itemName,
 	claims,
 	claimableAmount,
 	currentUserId,
 	itemPrice,
 }: ClaimButtonProps) {
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [dialogOpen, setDialogOpen] = useState(false);
 	const createClaim = useCreateClaim();
 	const releaseClaim = useReleaseClaim();
 
@@ -106,6 +95,12 @@ export function ClaimButton({
 	const myClaims = claims.filter((c) => c.userId === currentUserId);
 
 	const handleClaim = () => {
+		// For items with price, open dialog to allow partial claims
+		if (itemPrice !== null && claimableAmount !== null) {
+			setDialogOpen(true);
+			return;
+		}
+		// For items without price, claim directly
 		setIsProcessing(true);
 		createClaim.mutate(
 			{ itemId },
@@ -127,41 +122,62 @@ export function ClaimButton({
 
 	const isPending = isProcessing || createClaim.isPending || releaseClaim.isPending;
 
+	// Dialog for partial claims (only for items with price)
+	const partialClaimDialog =
+		itemPrice !== null && claimableAmount !== null ? (
+			<PartialClaimDialog
+				open={dialogOpen}
+				onOpenChange={setDialogOpen}
+				itemId={itemId}
+				itemName={itemName}
+				itemPrice={itemPrice}
+				claimableAmount={claimableAmount}
+				existingClaims={claims}
+				currentUserId={currentUserId}
+			/>
+		) : null;
+
 	switch (claimState) {
 		case "unclaimed":
 			return (
-				<Button
-					size="sm"
-					variant="default"
-					className="gap-1.5"
-					onClick={handleClaim}
-					disabled={isPending}
-				>
-					{isPending ? (
-						<Loader2 className="size-3.5 animate-spin" />
-					) : (
-						<Lock className="size-3.5" />
-					)}
-					Claim
-				</Button>
+				<>
+					<Button
+						size="sm"
+						variant="default"
+						className="gap-1.5"
+						onClick={handleClaim}
+						disabled={isPending}
+					>
+						{isPending ? (
+							<Loader2 className="size-3.5 animate-spin" />
+						) : (
+							<Lock className="size-3.5" />
+						)}
+						Claim
+					</Button>
+					{partialClaimDialog}
+				</>
 			);
 
 		case "partially_claimed":
 			return (
-				<Button
-					size="sm"
-					variant="default"
-					className="gap-1.5"
-					onClick={handleClaim}
-					disabled={isPending}
-				>
-					{isPending ? (
-						<Loader2 className="size-3.5 animate-spin" />
-					) : (
-						<Lock className="size-3.5" />
-					)}
-					Claim{claimableAmount !== null && ` ${formatPrice(claimableAmount)}`}
-				</Button>
+				<>
+					<Button
+						size="sm"
+						variant="default"
+						className="gap-1.5"
+						onClick={handleClaim}
+						disabled={isPending}
+					>
+						{isPending ? (
+							<Loader2 className="size-3.5 animate-spin" />
+						) : (
+							<Lock className="size-3.5" />
+						)}
+						Claim{claimableAmount !== null && ` ${formatPrice(claimableAmount)}`}
+					</Button>
+					{partialClaimDialog}
+				</>
 			);
 
 		case "fully_claimed_by_me":
