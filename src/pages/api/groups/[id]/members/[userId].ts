@@ -1,6 +1,6 @@
 import type { APIContext } from "astro";
-import { and, eq } from "drizzle-orm";
-import { groupMembers, groups, users } from "@/db/schema";
+import { and, eq, inArray } from "drizzle-orm";
+import { claims, groupMembers, groups, itemRecipients, users } from "@/db/schema";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 
@@ -143,6 +143,22 @@ export async function DELETE(context: APIContext) {
 				},
 			);
 		}
+	}
+
+	// Release claims: Find items shared with this group and delete claims by the removed user
+	// This prevents orphaned claims when a user loses access to items through group removal
+	const itemsInGroup = await db
+		.select({ itemId: itemRecipients.itemId })
+		.from(itemRecipients)
+		.where(eq(itemRecipients.groupId, groupId));
+
+	if (itemsInGroup.length > 0) {
+		const itemIds = itemsInGroup.map((i) => i.itemId);
+		await db
+			.delete(claims)
+			.where(
+				and(eq(claims.userId, targetUserId), inArray(claims.itemId, itemIds)),
+			);
 	}
 
 	// Delete the membership

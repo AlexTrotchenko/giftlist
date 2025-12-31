@@ -1,7 +1,7 @@
 import type { APIContext } from "astro";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { ZodError } from "zod";
-import { groupMembers, groups, users } from "@/db/schema";
+import { claims, groupMembers, groups, itemRecipients, users } from "@/db/schema";
 import type { GroupResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
@@ -242,7 +242,30 @@ export async function DELETE(context: APIContext) {
 		});
 	}
 
-	// Delete the group (group_members will cascade delete due to onDelete: "cascade")
+	// Release claims: Find all items shared with this group and delete claims from group members
+	// Must happen BEFORE group deletion since we need membership data
+	const [itemsInGroup, membersInGroup] = await Promise.all([
+		db
+			.select({ itemId: itemRecipients.itemId })
+			.from(itemRecipients)
+			.where(eq(itemRecipients.groupId, groupId)),
+		db
+			.select({ userId: groupMembers.userId })
+			.from(groupMembers)
+			.where(eq(groupMembers.groupId, groupId)),
+	]);
+
+	if (itemsInGroup.length > 0 && membersInGroup.length > 0) {
+		const itemIds = itemsInGroup.map((i) => i.itemId);
+		const memberIds = membersInGroup.map((m) => m.userId);
+		await db
+			.delete(claims)
+			.where(
+				and(inArray(claims.userId, memberIds), inArray(claims.itemId, itemIds)),
+			);
+	}
+
+	// Delete the group (group_members and item_recipients will cascade delete due to onDelete: "cascade")
 	await db
 		.delete(groups)
 		.where(and(eq(groups.id, groupId), eq(groups.ownerId, user.id)));

@@ -1,6 +1,6 @@
 import type { APIContext } from "astro";
-import { and, eq, ne } from "drizzle-orm";
-import { groupMembers, groups, invitations, users } from "@/db/schema";
+import { and, eq, inArray, ne } from "drizzle-orm";
+import { claims, groupMembers, groups, invitations, itemRecipients, items, users } from "@/db/schema";
 import type { GroupMemberResponse, GroupResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
@@ -163,6 +163,63 @@ export async function POST(context: APIContext) {
 		context.locals.runtime.env.RESEND_API_KEY,
 	);
 	const notificationService = createNotificationService(db, emailClient);
+
+	// Sync: Owner joins group - untag items from this group, release claims, notify claimers
+	// Find items owned by the new member that are tagged to this group
+	const ownerItemsInGroup = await db
+		.select({
+			itemId: itemRecipients.itemId,
+			itemName: items.name,
+		})
+		.from(itemRecipients)
+		.innerJoin(items, eq(items.id, itemRecipients.itemId))
+		.where(
+			and(
+				eq(itemRecipients.groupId, group.id),
+				eq(items.ownerId, user.id),
+			),
+		);
+
+	if (ownerItemsInGroup.length > 0) {
+		const ownerItemIds = ownerItemsInGroup.map((i) => i.itemId);
+
+		// Find claims on these items (from any user) to notify before deletion
+		const affectedClaims = await db
+			.select({
+				userId: claims.userId,
+				itemId: claims.itemId,
+				itemName: items.name,
+			})
+			.from(claims)
+			.innerJoin(items, eq(items.id, claims.itemId))
+			.where(inArray(claims.itemId, ownerItemIds));
+
+		// Delete claims on owner's items in this group
+		if (affectedClaims.length > 0) {
+			await db.delete(claims).where(inArray(claims.itemId, ownerItemIds));
+
+			// Notify claimers that their claims were released
+			await notificationService.notifyClaimsReleased({
+				claims: affectedClaims.map((c) => ({
+					userId: c.userId,
+					itemName: c.itemName,
+					itemId: c.itemId,
+				})),
+				reason: "owner_joined_group",
+				groupName: group.name,
+			});
+		}
+
+		// Remove item recipients (untag items from this group)
+		await db
+			.delete(itemRecipients)
+			.where(
+				and(
+					eq(itemRecipients.groupId, group.id),
+					inArray(itemRecipients.itemId, ownerItemIds),
+				),
+			);
+	}
 
 	// Notify the inviter that their invitation was accepted
 	await notificationService.notifyInvitationAccepted({

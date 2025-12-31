@@ -1,9 +1,10 @@
 import type { APIContext } from "astro";
 import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
-import { groupMembers, itemRecipients, items, users } from "@/db/schema";
+import { claims, groupMembers, itemRecipients, items, users } from "@/db/schema";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 import { type UpdateItemInput, updateItemSchema } from "@/lib/validations/item";
 
 /**
@@ -259,6 +260,26 @@ export async function DELETE(context: APIContext) {
 		});
 	}
 
+	// Find all claims on this item and notify claimers before deletion
+	const itemClaims = await db
+		.select({ userId: claims.userId })
+		.from(claims)
+		.where(eq(claims.itemId, itemId));
+
+	// Notify each claimer that their claimed item was deleted
+	await Promise.all(
+		itemClaims.map((claim) =>
+			createNotification(db, {
+				userId: claim.userId,
+				type: "item_deleted",
+				title: "Item Removed",
+				body: `"${existingItem.name}" has been removed from a wishlist. Your claim has been released.`,
+				data: { itemId, itemName: existingItem.name },
+			}),
+		),
+	);
+
+	// Delete the item (claims are cascade-deleted by FK constraint)
 	await db
 		.delete(items)
 		.where(and(eq(items.id, itemId), eq(items.ownerId, user.id)));

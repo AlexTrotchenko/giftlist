@@ -69,6 +69,8 @@ export type NotificationType =
 	| "invitation_accepted"
 	| "item_purchased"
 	| "item_added"
+	| "item_deleted"
+	| "claim_released"
 	| "member_joined"
 	| "member_left"
 	| "reminder";
@@ -143,6 +145,20 @@ export interface MemberLeftInput {
 	groupId: string;
 }
 
+/** Input for notifying claimers when their claims are released */
+export interface ClaimsReleasedInput {
+	/** Array of claim info with user ID and item name */
+	claims: Array<{
+		userId: string;
+		itemName: string;
+		itemId: string;
+	}>;
+	/** Reason the claim was released */
+	reason: "owner_joined_group" | "item_unshared" | "group_deleted";
+	/** Name of the group involved */
+	groupName: string;
+}
+
 /** Notification service interface */
 export interface NotificationService {
 	createNotification(
@@ -158,6 +174,9 @@ export interface NotificationService {
 		input: MemberJoinedInput,
 	): Promise<CreateNotificationResult[]>;
 	notifyMemberLeft(input: MemberLeftInput): Promise<CreateNotificationResult[]>;
+	notifyClaimsReleased(
+		input: ClaimsReleasedInput,
+	): Promise<CreateNotificationResult[]>;
 }
 
 /**
@@ -288,6 +307,32 @@ export function createNotificationService(
 						title: "Member Left Group",
 						body: `${leftMemberName} left "${groupName}"`,
 						data: { groupId, leftMemberName, groupName },
+					}),
+				),
+			);
+
+			return results;
+		},
+
+		async notifyClaimsReleased(
+			input: ClaimsReleasedInput,
+		): Promise<CreateNotificationResult[]> {
+			const { claims: claimInfos, reason, groupName } = input;
+
+			const reasonMessages: Record<typeof reason, string> = {
+				owner_joined_group: `The item owner joined "${groupName}"`,
+				item_unshared: `The item was unshared from "${groupName}"`,
+				group_deleted: `The group "${groupName}" was deleted`,
+			};
+
+			const results = await Promise.all(
+				claimInfos.map(({ userId, itemName, itemId }) =>
+					this.createNotification({
+						userId,
+						type: "claim_released",
+						title: "Claim Released",
+						body: `Your claim on "${itemName}" has been released. ${reasonMessages[reason]}.`,
+						data: { itemId, itemName, groupName, reason },
 					}),
 				),
 			);

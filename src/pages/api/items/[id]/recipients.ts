@@ -1,7 +1,7 @@
 import type { APIContext } from "astro";
 import { and, eq, inArray } from "drizzle-orm";
 import { ZodError } from "zod";
-import { groupMembers, groups, itemRecipients, items, users } from "@/db/schema";
+import { claims, groupMembers, groups, itemRecipients, items, users } from "@/db/schema";
 import type { ItemRecipientResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
@@ -322,6 +322,20 @@ export async function DELETE(context: APIContext) {
 			);
 		}
 		throw error;
+	}
+
+	// Release claims: Find members of the groups being removed and delete their claims on this item
+	// Must happen BEFORE recipient deletion since we need to identify affected users
+	const membersInRemovedGroups = await db
+		.select({ userId: groupMembers.userId })
+		.from(groupMembers)
+		.where(inArray(groupMembers.groupId, validatedData.groupIds));
+
+	if (membersInRemovedGroups.length > 0) {
+		const memberIds = membersInRemovedGroups.map((m) => m.userId);
+		await db
+			.delete(claims)
+			.where(and(eq(claims.itemId, itemId), inArray(claims.userId, memberIds)));
 	}
 
 	// Delete specified recipients
