@@ -23,6 +23,7 @@ const queryClient = new QueryClient({
 
 interface SharedPageProps {
 	initialItems: SharedItem[];
+	currentUserId: string;
 }
 
 const ALL_GROUPS = "all";
@@ -56,7 +57,7 @@ function FilteredEmptyState({ groupName }: { groupName: string }) {
 	);
 }
 
-function SharedContent({ initialItems }: SharedPageProps) {
+function SharedContent({ initialItems, currentUserId }: SharedPageProps) {
 	const { data: items = [] } = useSharedItems(initialItems);
 	const [selectedGroup, setSelectedGroup] = useState<string>(ALL_GROUPS);
 
@@ -122,7 +123,11 @@ function SharedContent({ initialItems }: SharedPageProps) {
 			) : (
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{filteredItems.map((sharedItem) => (
-						<SharedItemCard key={sharedItem.item.id} sharedItem={sharedItem} />
+						<SharedItemCard
+							key={sharedItem.item.id}
+							sharedItem={sharedItem}
+							currentUserId={currentUserId}
+						/>
 					))}
 				</div>
 			)}
@@ -130,10 +135,10 @@ function SharedContent({ initialItems }: SharedPageProps) {
 	);
 }
 
-export function SharedPage({ initialItems }: SharedPageProps) {
+export function SharedPage({ initialItems, currentUserId }: SharedPageProps) {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<SharedContent initialItems={initialItems} />
+			<SharedContent initialItems={initialItems} currentUserId={currentUserId} />
 		</QueryClientProvider>
 	);
 }

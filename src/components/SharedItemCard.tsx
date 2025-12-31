@@ -1,4 +1,4 @@
-import { ExternalLink, User } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, User } from "lucide-react";
 import type { SharedItem } from "@/hooks/useSharedItems";
 import {
 	Card,
@@ -7,9 +7,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ClaimButton } from "@/components/ClaimButton";
+import { cn } from "@/lib/utils";
 
 interface SharedItemCardProps {
 	sharedItem: SharedItem;
+	currentUserId: string;
 }
 
 function formatPrice(cents: number): string {
@@ -19,13 +23,52 @@ function formatPrice(cents: number): string {
 	}).format(cents / 100);
 }
 
-export function SharedItemCard({ sharedItem }: SharedItemCardProps) {
-	const { item, owner, sharedVia } = sharedItem;
+function isExpiringSoon(expiresAt: string | null): boolean {
+	if (!expiresAt) return false;
+	const expiryDate = new Date(expiresAt);
+	const now = new Date();
+	const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+	return expiryDate.getTime() - now.getTime() < threeDaysMs;
+}
+
+function getExpirationText(expiresAt: string): string {
+	const expiryDate = new Date(expiresAt);
+	const now = new Date();
+	const diffMs = expiryDate.getTime() - now.getTime();
+	const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+
+	if (diffDays <= 0) return "Expired";
+	if (diffDays === 1) return "Expires tomorrow";
+	return `Expires in ${diffDays} days`;
+}
+
+export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProps) {
+	const { item, owner, sharedVia, claims, claimableAmount } = sharedItem;
+
+	// Determine if current user is the owner (should not see claim badges)
+	const isOwner = owner.id === currentUserId;
+
+	// Calculate claim progress for items with price
+	const hasPrice = item.price !== null;
+	const claimedAmount = hasPrice && item.price !== null
+		? item.price - (claimableAmount ?? item.price)
+		: 0;
+	const claimProgress = hasPrice && item.price !== null && item.price > 0
+		? (claimedAmount / item.price) * 100
+		: 0;
+	const isPartiallyClaimed = hasPrice && claimProgress > 0 && claimProgress < 100;
+	const isFullyClaimed = claims.length > 0 && (
+		claims.some((c) => c.amount === null) || // full claim exists
+		(hasPrice && claimableAmount === 0) // all partial claims fill the price
+	);
+
+	// Check for expiring claims (only relevant to non-owners viewing)
+	const expiringClaim = claims.find((c) => isExpiringSoon(c.expiresAt));
 
 	return (
 		<Card className="overflow-hidden transition-shadow hover:shadow-md">
-			{/* Image or placeholder */}
-			<div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+			{/* Image or placeholder with claim status overlay */}
+			<div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
 				{item.imageUrl ? (
 					<img
 						src={item.imageUrl}
@@ -37,6 +80,34 @@ export function SharedItemCard({ sharedItem }: SharedItemCardProps) {
 				) : (
 					<div className="flex h-full w-full items-center justify-center">
 						<span className="text-sm text-muted-foreground">No image</span>
+					</div>
+				)}
+
+				{/* Claim status badges - hidden from owner */}
+				{!isOwner && (isFullyClaimed || expiringClaim) && (
+					<div className="absolute right-2 top-2 flex flex-col gap-1">
+						{isFullyClaimed && !expiringClaim && (
+							<Badge
+								className={cn(
+									"gap-1 bg-green-100 text-green-800",
+									"dark:bg-green-900/30 dark:text-green-400",
+								)}
+							>
+								<Check className="size-3" />
+								Claimed
+							</Badge>
+						)}
+						{expiringClaim && expiringClaim.expiresAt && (
+							<Badge
+								className={cn(
+									"gap-1 border-amber-300 bg-amber-100 text-amber-800",
+									"dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+								)}
+							>
+								<AlertTriangle className="size-3" />
+								{getExpirationText(expiringClaim.expiresAt)}
+							</Badge>
+						)}
 					</div>
 				)}
 			</div>
@@ -63,6 +134,25 @@ export function SharedItemCard({ sharedItem }: SharedItemCardProps) {
 						{item.notes}
 					</p>
 				)}
+
+				{/* Partial claim progress bar - hidden from owner */}
+				{!isOwner && isPartiallyClaimed && item.price !== null && (
+					<div className="mt-3 space-y-1">
+						<div className="flex items-center justify-between text-xs">
+							<span className="text-muted-foreground">Claim progress</span>
+							<span className="font-medium">
+								{formatPrice(claimedAmount)} / {formatPrice(item.price)}
+							</span>
+						</div>
+						<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+							<div
+								className="h-full bg-primary transition-all duration-300"
+								style={{ width: `${claimProgress}%` }}
+							/>
+						</div>
+					</div>
+				)}
+
 				{/* Shared via groups */}
 				<div className="mt-2 flex flex-wrap gap-1">
 					{sharedVia.map((group) => (
@@ -76,7 +166,7 @@ export function SharedItemCard({ sharedItem }: SharedItemCardProps) {
 				</div>
 			</CardContent>
 
-			<CardFooter className="pt-4">
+			<CardFooter className="flex items-center justify-between gap-2 pt-4">
 				{item.url ? (
 					<a
 						href={item.url}
@@ -90,6 +180,13 @@ export function SharedItemCard({ sharedItem }: SharedItemCardProps) {
 				) : (
 					<span />
 				)}
+				<ClaimButton
+					itemId={item.id}
+					claims={claims}
+					claimableAmount={claimableAmount}
+					currentUserId={currentUserId}
+					itemPrice={item.price}
+				/>
 			</CardFooter>
 		</Card>
 	);

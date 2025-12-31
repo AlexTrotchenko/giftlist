@@ -28,7 +28,7 @@ async function acceptInvitation(token: string): Promise<AcceptInvitationResponse
 		method: "POST",
 	});
 	if (!response.ok) {
-		const error = await response.json();
+		const error = (await response.json()) as { error?: string };
 		throw new Error(error.error || "Failed to accept invitation");
 	}
 	return response.json();
@@ -39,7 +39,7 @@ async function declineInvitation(token: string): Promise<InvitationResponse> {
 		method: "POST",
 	});
 	if (!response.ok) {
-		const error = await response.json();
+		const error = (await response.json()) as { error?: string };
 		throw new Error(error.error || "Failed to decline invitation");
 	}
 	return response.json();

@@ -114,5 +114,5 @@ const serializedItems = Array.from(itemMap.values());
 ---
 
 <AppLayout title="Shared With Me - GiftList">
-	<SharedPage client:load initialItems={serializedItems} />
+	<SharedPage client:load initialItems={serializedItems} currentUserId={user.id} />
 </AppLayout>
