@@ -9,18 +9,13 @@ interface ApiError {
 	error: string;
 }
 
-interface MyClaimsResponse {
-	data: ClaimResponse[];
-}
-
 async function fetchMyClaims(): Promise<ClaimResponse[]> {
 	const response = await fetch("/api/claims");
 	if (!response.ok) {
 		const error: ApiError = await response.json();
 		throw new Error(error.error || "Failed to fetch claims");
 	}
-	const result: MyClaimsResponse = await response.json();
-	return result.data;
+	return response.json();
 }
 
 async function createClaim(input: CreateClaimInput): Promise<ClaimResponse> {

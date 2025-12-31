@@ -43,7 +43,7 @@ function getExpirationText(expiresAt: string): string {
 }
 
 export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProps) {
-	const { item, owner, sharedVia, claims, claimableAmount } = sharedItem;
+	const { item, owner, sharedVia, claims = [], claimableAmount } = sharedItem;
 
 	// Determine if current user is the owner (should not see claim badges)
 	const isOwner = owner.id === currentUserId;

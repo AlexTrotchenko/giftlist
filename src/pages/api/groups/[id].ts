@@ -1,10 +1,10 @@
 import type { APIContext } from "astro";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { claims, groupMembers, groups, itemRecipients, users } from "@/db/schema";
 import type { GroupResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
-import { createDb } from "@/lib/db";
+import { createDb, safeInArray } from "@/lib/db";
 import {
 	type UpdateGroupInput,
 	updateGroupSchema,
@@ -261,7 +261,7 @@ export async function DELETE(context: APIContext) {
 		await db
 			.delete(claims)
 			.where(
-				and(inArray(claims.userId, memberIds), inArray(claims.itemId, itemIds)),
+				and(safeInArray(claims.userId, memberIds), safeInArray(claims.itemId, itemIds)),
 			);
 	}
 

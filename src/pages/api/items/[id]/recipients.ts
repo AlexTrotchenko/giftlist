@@ -1,10 +1,10 @@
 import type { APIContext } from "astro";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { claims, groupMembers, groups, itemRecipients, items, users } from "@/db/schema";
 import type { ItemRecipientResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
-import { createDb } from "@/lib/db";
+import { createDb, safeInArray } from "@/lib/db";
 import {
 	addRecipientsSchema,
 	removeRecipientsSchema,
@@ -176,7 +176,7 @@ export async function POST(context: APIContext) {
 		.where(
 			and(
 				eq(groupMembers.userId, user.id),
-				inArray(groupMembers.groupId, validatedData.groupIds),
+				safeInArray(groupMembers.groupId, validatedData.groupIds),
 			),
 		);
 
@@ -335,7 +335,7 @@ export async function DELETE(context: APIContext) {
 		const memberIds = membersInRemovedGroups.map((m) => m.userId);
 		await db
 			.delete(claims)
-			.where(and(eq(claims.itemId, itemId), inArray(claims.userId, memberIds)));
+			.where(and(eq(claims.itemId, itemId), safeInArray(claims.userId, memberIds)));
 	}
 
 	// Delete specified recipients
@@ -344,7 +344,7 @@ export async function DELETE(context: APIContext) {
 		.where(
 			and(
 				eq(itemRecipients.itemId, itemId),
-				inArray(itemRecipients.groupId, validatedData.groupIds),
+				safeInArray(itemRecipients.groupId, validatedData.groupIds),
 			),
 		)
 		.returning({ id: itemRecipients.id });

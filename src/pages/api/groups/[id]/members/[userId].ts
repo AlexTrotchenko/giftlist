@@ -1,8 +1,8 @@
 import type { APIContext } from "astro";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { claims, groupMembers, groups, itemRecipients, users } from "@/db/schema";
 import { getAuthAdapter } from "@/lib/auth";
-import { createDb } from "@/lib/db";
+import { createDb, safeInArray } from "@/lib/db";
 
 /**
  * DELETE /api/groups/[id]/members/[userId] - Remove a member from a group
@@ -157,7 +157,7 @@ export async function DELETE(context: APIContext) {
 		await db
 			.delete(claims)
 			.where(
-				and(eq(claims.userId, targetUserId), inArray(claims.itemId, itemIds)),
+				and(eq(claims.userId, targetUserId), safeInArray(claims.itemId, itemIds)),
 			);
 	}
 

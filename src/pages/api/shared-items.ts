@@ -1,5 +1,5 @@
 import type { APIContext } from "astro";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import {
 	claims,
 	groupMembers,
@@ -10,7 +10,7 @@ import {
 } from "@/db/schema";
 import type { ClaimWithUserResponse, ItemResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
-import { createDb } from "@/lib/db";
+import { createDb, safeInArray } from "@/lib/db";
 
 /**
  * GET /api/shared-items - List items shared with the current user
@@ -106,7 +106,7 @@ export async function GET(context: APIContext) {
 					})
 					.from(claims)
 					.innerJoin(users, eq(claims.userId, users.id))
-					.where(inArray(claims.itemId, itemIds))
+					.where(safeInArray(claims.itemId, itemIds))
 			: [];
 
 	// Group claims by itemId for efficient lookup

@@ -1,9 +1,9 @@
 import type { APIContext } from "astro";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { claims, groupMembers, groups, invitations, itemRecipients, items, users } from "@/db/schema";
 import type { GroupMemberResponse, GroupResponse } from "@/db/types";
 import { getAuthAdapter } from "@/lib/auth";
-import { createDb } from "@/lib/db";
+import { createDb, safeInArray } from "@/lib/db";
 import { createEmailClient } from "@/lib/email";
 import { createNotificationService } from "@/lib/notifications";
 
@@ -192,11 +192,11 @@ export async function POST(context: APIContext) {
 			})
 			.from(claims)
 			.innerJoin(items, eq(items.id, claims.itemId))
-			.where(inArray(claims.itemId, ownerItemIds));
+			.where(safeInArray(claims.itemId, ownerItemIds));
 
 		// Delete claims on owner's items in this group
 		if (affectedClaims.length > 0) {
-			await db.delete(claims).where(inArray(claims.itemId, ownerItemIds));
+			await db.delete(claims).where(safeInArray(claims.itemId, ownerItemIds));
 
 			// Notify claimers that their claims were released
 			await notificationService.notifyClaimsReleased({
@@ -216,7 +216,7 @@ export async function POST(context: APIContext) {
 			.where(
 				and(
 					eq(itemRecipients.groupId, group.id),
-					inArray(itemRecipients.itemId, ownerItemIds),
+					safeInArray(itemRecipients.itemId, ownerItemIds),
 				),
 			);
 	}

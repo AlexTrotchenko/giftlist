@@ -79,6 +79,9 @@ export function ItemFormDialog({
 	});
 	const [errors, setErrors] = useState<FormErrors>({});
 
+	// Memoize recipient IDs to avoid infinite loops
+	const existingRecipientIds = existingRecipients.map((r) => r.groupId).join(",");
+
 	useEffect(() => {
 		if (open) {
 			if (item) {
@@ -88,7 +91,7 @@ export function ItemFormDialog({
 					price: formatPriceForInput(item.price),
 					notes: item.notes ?? "",
 					imageUrl: item.imageUrl ?? null,
-					recipientGroupIds: existingRecipients.map((r) => r.groupId),
+					recipientGroupIds: existingRecipientIds ? existingRecipientIds.split(",") : [],
 				});
 			} else {
 				setFormData({
@@ -102,7 +105,7 @@ export function ItemFormDialog({
 			}
 			setErrors({});
 		}
-	}, [open, item, existingRecipients]);
+	}, [open, item, existingRecipientIds]);
 
 	const validateForm = (): boolean => {
 		const newErrors: FormErrors = {};
