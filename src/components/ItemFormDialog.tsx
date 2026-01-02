@@ -26,10 +26,19 @@ import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 import { getCurrency } from "@/i18n/formatting";
 
+interface DefaultValues {
+	name?: string;
+	url?: string;
+	price?: string;
+	notes?: string;
+	imageUrl?: string | null;
+}
+
 interface ItemFormDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	item?: Item | null;
+	defaultValues?: DefaultValues;
 }
 
 interface FormData {
@@ -65,6 +74,7 @@ export function ItemFormDialog({
 	open,
 	onOpenChange,
 	item,
+	defaultValues,
 }: ItemFormDialogProps) {
 	const isEditing = !!item;
 	const createItem = useCreateItem();
@@ -90,12 +100,21 @@ export function ItemFormDialog({
 		if (open) {
 			if (item) {
 				setFormData({
-					name: item.name,
-					url: item.url ?? "",
-					price: formatPriceForInput(item.price),
-					notes: item.notes ?? "",
-					imageUrl: item.imageUrl ?? null,
+					name: defaultValues?.name ?? item.name,
+					url: defaultValues?.url ?? (item.url ?? ""),
+					price: defaultValues?.price ?? formatPriceForInput(item.price),
+					notes: defaultValues?.notes ?? (item.notes ?? ""),
+					imageUrl: defaultValues?.imageUrl !== undefined ? defaultValues.imageUrl : (item.imageUrl ?? null),
 					recipientGroupIds: existingRecipientIds ? existingRecipientIds.split(",") : [],
+				});
+			} else if (defaultValues) {
+				setFormData({
+					name: defaultValues.name ?? "",
+					url: defaultValues.url ?? "",
+					price: defaultValues.price ?? "",
+					notes: defaultValues.notes ?? "",
+					imageUrl: defaultValues.imageUrl ?? null,
+					recipientGroupIds: [],
 				});
 			} else {
 				setFormData({
@@ -109,7 +128,7 @@ export function ItemFormDialog({
 			}
 			setErrors({});
 		}
-	}, [open, item, existingRecipientIds]);
+	}, [open, item, defaultValues, existingRecipientIds]);
 
 	const validateForm = (): boolean => {
 		const newErrors: FormErrors = {};

@@ -3,6 +3,7 @@ import { Gift, Plus } from "lucide-react";
 import { useState } from "react";
 import { ItemCard } from "@/components/ItemCard";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
+import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
 import { Button } from "@/components/ui/button";
 import { useDeleteItem, useItems } from "@/hooks/useItems";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
@@ -23,7 +24,7 @@ interface WishlistPageProps {
 	locale: Locale;
 }
 
-function EmptyState({ onAddItem }: { onAddItem: () => void }) {
+function EmptyState({ onAddItem, onQuickAdd }: { onAddItem: () => void; onQuickAdd: () => void }) {
 	return (
 		<div className="flex flex-col items-center justify-center py-16 text-center">
 			<div className="mb-4 rounded-full bg-muted p-4">
@@ -33,10 +34,16 @@ function EmptyState({ onAddItem }: { onAddItem: () => void }) {
 			<p className="mb-6 max-w-sm text-muted-foreground">
 				{m.wishlist_emptyDescription()}
 			</p>
-			<Button onClick={onAddItem}>
-				<Plus className="size-4" />
-				{m.wishlist_addFirstItem()}
-			</Button>
+			<div className="flex gap-2">
+				<Button variant="outline" onClick={onQuickAdd}>
+					<Plus className="size-4" />
+					{m.item_quickAdd()}
+				</Button>
+				<Button onClick={onAddItem}>
+					<Plus className="size-4" />
+					{m.wishlist_addFirstItem()}
+				</Button>
+			</div>
 		</div>
 	);
 }
@@ -47,14 +54,18 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingItem, setEditingItem] = useState<Item | null>(null);
+	const [quickAddOpen, setQuickAddOpen] = useState(false);
+	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
 
 	const handleAddItem = () => {
 		setEditingItem(null);
+		setExtractedData(null);
 		setDialogOpen(true);
 	};
 
 	const handleEditItem = (item: Item) => {
 		setEditingItem(item);
+		setExtractedData(null);
 		setDialogOpen(true);
 	};
 
@@ -64,14 +75,33 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		}
 	};
 
+	const handleExtractComplete = (data: ExtractedData) => {
+		setExtractedData(data);
+		setEditingItem(null);
+		setDialogOpen(true);
+	};
+
+	const handleDialogClose = (open: boolean) => {
+		setDialogOpen(open);
+		if (!open) {
+			setExtractedData(null);
+		}
+	};
+
 	if (items.length === 0) {
 		return (
 			<div className="container mx-auto max-w-screen-xl px-4 py-8">
-				<EmptyState onAddItem={handleAddItem} />
+				<EmptyState onAddItem={handleAddItem} onQuickAdd={() => setQuickAddOpen(true)} />
 				<ItemFormDialog
 					open={dialogOpen}
-					onOpenChange={setDialogOpen}
+					onOpenChange={handleDialogClose}
 					item={editingItem}
+					defaultValues={extractedData ?? undefined}
+				/>
+				<QuickAddForm
+					open={quickAddOpen}
+					onOpenChange={setQuickAddOpen}
+					onExtractComplete={handleExtractComplete}
 				/>
 			</div>
 		);
@@ -81,10 +111,16 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold">{m.wishlist_title()}</h1>
-				<Button onClick={handleAddItem}>
-					<Plus className="size-4" />
-					{m.wishlist_addItem()}
-				</Button>
+				<div className="flex gap-2">
+					<Button variant="outline" onClick={() => setQuickAddOpen(true)}>
+						<Plus className="size-4" />
+						{m.item_quickAdd()}
+					</Button>
+					<Button onClick={handleAddItem}>
+						<Plus className="size-4" />
+						{m.wishlist_addItem()}
+					</Button>
+				</div>
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -100,8 +136,14 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 
 			<ItemFormDialog
 				open={dialogOpen}
-				onOpenChange={setDialogOpen}
+				onOpenChange={handleDialogClose}
 				item={editingItem}
+				defaultValues={extractedData ?? undefined}
+			/>
+			<QuickAddForm
+				open={quickAddOpen}
+				onOpenChange={setQuickAddOpen}
+				onExtractComplete={handleExtractComplete}
 			/>
 		</div>
 	);

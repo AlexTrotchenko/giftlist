@@ -54,6 +54,8 @@
   "item_editAriaLabel": "Edit {name}",
   "item_deleteAriaLabel": "Delete {name}",
   "item_priceLabel": "Price ({currency})",
+  "item_quickAdd": "Quick Add",
+  "item_quickAddDescription": "Enter a product URL to quickly add an item to your wishlist.",
 
   "groups_title": "My Groups",
   "groups_emptyTitle": "No groups yet",
@@ -215,5 +217,11 @@
   "landing_feature2Title": "Join Groups",
   "landing_feature2Description": "Create family or friend groups to share wishlists and coordinate gifts.",
   "landing_feature3Title": "Claim Items",
-  "landing_feature3Description": "Reserve items so others know what's being purchased. Avoid duplicate gifts."
+  "landing_feature3Description": "Reserve items so others know what's being purchased. Avoid duplicate gifts.",
+
+  "item_addSuccess": "Item added successfully",
+  "common_retry": "Retry",
+
+  "share_notSupported": "Share Target Not Supported",
+  "share_iosMessage": "iOS PWAs don't support web share targets yet. Open the app from your home screen and use Quick Add instead."
 }

@@ -1,0 +1,72 @@
+{
+  "name": "GiftList",
+  "short_name": "GiftList",
+  "description": "Collaborate on gift ideas and keep track of what you want to give",
+  "start_url": "/wishlist",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#8b7c00",
+  "background_color": "#f8e8c8",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "url": "url",
+      "title": "title",
+      "text": "text"
+    }
+  },
+  "categories": ["productivity", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/screenshot-192x540.png",
+      "sizes": "192x540",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-512x1024.png",
+      "sizes": "512x1024",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
+}

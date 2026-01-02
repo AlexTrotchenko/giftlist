@@ -21,6 +21,11 @@ const basePath = deLocalizeHref(currentPath);
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
+		<!-- PWA: Manifest and theme -->
+		<link rel="manifest" href="/manifest.json" />
+		<meta name="theme-color" content="#8b7c00" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<!-- SEO: Alternate language links -->
 		{locales.map((lang) => (
 			<link
@@ -39,6 +44,16 @@ const basePath = deLocalizeHref(currentPath);
 				const mode = localStorage.getItem("color-mode") || "dark";
 				document.documentElement.classList.add(mode);
 			})();
+			// Register service worker for PWA installability
+			if ("serviceWorker" in navigator) {
+				window.addEventListener("load", () => {
+					navigator.serviceWorker
+						.register("/sw.js")
+						.catch((error) => {
+							console.log("Service worker registration failed:", error);
+						});
+				});
+			}
 		</script>
 	</head>
 	<body class="min-h-screen bg-background font-sans antialiased">

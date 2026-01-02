@@ -1,0 +1,43 @@
+---
+import { SharePage } from "@/components/SharePage";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { getAuthAdapter } from "@/lib/auth";
+import { localizeHref, getLocale } from "@/paraglide/runtime";
+
+const auth = getAuthAdapter(Astro.locals.runtime.env);
+const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
+const locale = getLocale();
+
+// Get share parameters from query string
+const url = new URL(Astro.request.url);
+const shareUrl = url.searchParams.get("url");
+const shareTitle = url.searchParams.get("title");
+const shareText = url.searchParams.get("text");
+
+// Detect iOS - Web Share Target not supported
+const userAgent = Astro.request.headers.get("user-agent") || "";
+const isIOS = /iPhone|iPad|iPod/.test(userAgent);
+
+// If not authenticated, store share params and redirect to sign-in
+if (!authUser) {
+	// Store params in sessionStorage via redirect parameter
+	// The share params are preserved in the URL during the sign-in flow
+	const shareParams = new URLSearchParams({
+		...(shareUrl && { url: shareUrl }),
+		...(shareTitle && { title: shareTitle }),
+		...(shareText && { text: shareText }),
+	});
+	const returnUrl = `/share?${shareParams.toString()}`;
+	return Astro.redirect(localizeHref(`/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`));
+}
+---
+
+<AppLayout title="Share with GiftList" locale={locale}>
+	<SharePage
+		client:load
+		url={shareUrl || undefined}
+		title={shareTitle || undefined}
+		text={shareText || undefined}
+		isIOS={isIOS}
+	/>
+</AppLayout>
