@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import type { SharedItem } from "@/hooks/useSharedItems";
 import { useSharedItems } from "@/hooks/useSharedItems";
+import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
+import * as m from "@/paraglide/messages";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -25,6 +27,7 @@ const queryClient = new QueryClient({
 interface SharedPageProps {
 	initialItems: SharedItem[];
 	currentUserId: string;
+	locale: Locale;
 }
 
 const ALL_GROUPS = "all";
@@ -35,10 +38,9 @@ function EmptyState() {
 			<div className="mb-4 rounded-full bg-muted p-4">
 				<Gift className="size-8 text-muted-foreground" />
 			</div>
-			<h2 className="mb-2 text-xl font-semibold">No shared items yet</h2>
+			<h2 className="mb-2 text-xl font-semibold">{m.shared_emptyTitle()}</h2>
 			<p className="max-w-sm text-muted-foreground">
-				When friends share their wishlists with your groups, their items will
-				appear here.
+				{m.shared_emptyDescription()}
 			</p>
 		</div>
 	);
@@ -50,15 +52,15 @@ function FilteredEmptyState({ groupName }: { groupName: string }) {
 			<div className="mb-4 rounded-full bg-muted p-4">
 				<Gift className="size-8 text-muted-foreground" />
 			</div>
-			<h2 className="mb-2 text-xl font-semibold">No items in this group</h2>
+			<h2 className="mb-2 text-xl font-semibold">{m.shared_noItemsInGroup()}</h2>
 			<p className="max-w-sm text-muted-foreground">
-				No one has shared items with {groupName} yet.
+				{m.shared_noItemsInGroupDescription({ groupName })}
 			</p>
 		</div>
 	);
 }
 
-function SharedContent({ initialItems, currentUserId }: SharedPageProps) {
+function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "locale">) {
 	const { data: items = [] } = useSharedItems(initialItems);
 	const [selectedGroup, setSelectedGroup] = useState<string>(ALL_GROUPS);
 
@@ -104,14 +106,14 @@ function SharedContent({ initialItems, currentUserId }: SharedPageProps) {
 			<MyClaimsSection />
 
 			<div className="mb-6 flex items-center justify-between">
-				<h1 className="text-2xl font-bold">Shared With Me</h1>
+				<h1 className="text-2xl font-bold">{m.shared_title()}</h1>
 				{groups.length > 1 && (
 					<Select value={selectedGroup} onValueChange={setSelectedGroup}>
 						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Filter by group" />
+							<SelectValue placeholder={m.shared_filterByGroup()} />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value={ALL_GROUPS}>All Groups</SelectItem>
+							<SelectItem value={ALL_GROUPS}>{m.shared_allGroups()}</SelectItem>
 							{groups.map((group) => (
 								<SelectItem key={group.id} value={group.id}>
 									{group.name}
@@ -139,10 +141,12 @@ function SharedContent({ initialItems, currentUserId }: SharedPageProps) {
 	);
 }
 
-export function SharedPage({ initialItems, currentUserId }: SharedPageProps) {
+export function SharedPage({ initialItems, currentUserId, locale }: SharedPageProps) {
 	return (
-		<QueryClientProvider client={queryClient}>
-			<SharedContent initialItems={initialItems} currentUserId={currentUserId} />
-		</QueryClientProvider>
+		<LocaleProvider initialLocale={locale}>
+			<QueryClientProvider client={queryClient}>
+				<SharedContent initialItems={initialItems} currentUserId={currentUserId} />
+			</QueryClientProvider>
+		</LocaleProvider>
 	);
 }

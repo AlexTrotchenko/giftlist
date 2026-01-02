@@ -6,14 +6,16 @@ import type { ItemResponse } from "@/db/types";
 import AppLayout from "@/layouts/AppLayout.astro";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
+import { getLocale, localizeHref } from "@/paraglide/runtime";
 
 const db = createDb(Astro.locals.runtime.env.DB);
 const auth = getAuthAdapter(Astro.locals.runtime.env);
 
 const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
+const locale = getLocale();
 
 if (!authUser) {
-	return Astro.redirect("/");
+	return Astro.redirect(localizeHref("/"));
 }
 
 // Look up internal user by Clerk ID, create if doesn't exist
@@ -113,6 +115,6 @@ for (const row of sharedItems) {
 const serializedItems = Array.from(itemMap.values());
 ---
 
-<AppLayout title="Shared With Me - GiftList">
-	<SharedPage client:load initialItems={serializedItems} currentUserId={user.id} />
+<AppLayout title="Shared With Me - GiftList" locale={locale}>
+	<SharedPage client:load initialItems={serializedItems} currentUserId={user.id} locale={locale} />
 </AppLayout>

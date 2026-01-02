@@ -1,11 +1,19 @@
 import { z } from "zod";
+import { ValidationMessageKeys } from "@/i18n/zod-messages";
 
 /**
  * Schema for creating a new group
  */
 export const createGroupSchema = z.object({
-	name: z.string().min(1, "Name is required").max(100, "Name too long"),
-	description: z.string().max(500, "Description too long").nullable().optional(),
+	name: z
+		.string()
+		.min(1, ValidationMessageKeys.nameRequired)
+		.max(100, ValidationMessageKeys.nameTooLong),
+	description: z
+		.string()
+		.max(500, ValidationMessageKeys.descriptionTooLong)
+		.nullable()
+		.optional(),
 });
 
 /**
@@ -13,8 +21,16 @@ export const createGroupSchema = z.object({
  * All fields are optional for partial updates
  */
 export const updateGroupSchema = z.object({
-	name: z.string().min(1, "Name is required").max(100, "Name too long").optional(),
-	description: z.string().max(500, "Description too long").nullable().optional(),
+	name: z
+		.string()
+		.min(1, ValidationMessageKeys.nameRequired)
+		.max(100, ValidationMessageKeys.nameTooLong)
+		.optional(),
+	description: z
+		.string()
+		.max(500, ValidationMessageKeys.descriptionTooLong)
+		.nullable()
+		.optional(),
 });
 
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;

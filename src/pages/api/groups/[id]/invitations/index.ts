@@ -302,6 +302,7 @@ export async function POST(context: APIContext) {
 		inviterName: user.name ?? user.email,
 		groupName: group.name,
 		inviteUrl,
+		locale: context.locals.locale ?? "en",
 		data: { groupId, invitationId: newInvitation.id },
 	});
 

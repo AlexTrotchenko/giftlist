@@ -62,6 +62,7 @@ import { notifications } from "@/db/schema";
 import type { Notification } from "@/db/types";
 import type { Database } from "@/lib/db";
 import type { EmailClient, SendEmailResult } from "@/lib/email";
+import type { Locale } from "@/i18n/LocaleContext";
 
 /** Notification types used throughout the application */
 export type NotificationType =
@@ -101,6 +102,8 @@ export interface SendInvitationEmailInput {
 	inviterName: string;
 	groupName: string;
 	inviteUrl: string;
+	/** Locale for email content (defaults to "en") */
+	locale?: Locale;
 	/** Additional data to store in the notification */
 	data?: Record<string, unknown>;
 }
@@ -265,8 +268,15 @@ export function createNotificationService(
 		async sendInvitationEmail(
 			input: SendInvitationEmailInput,
 		): Promise<SendInvitationEmailResult> {
-			const { userId, inviteeEmail, inviterName, groupName, inviteUrl, data } =
-				input;
+			const {
+				userId,
+				inviteeEmail,
+				inviterName,
+				groupName,
+				inviteUrl,
+				locale = "en",
+				data,
+			} = input;
 
 			// Send the email (skip if no email client configured or in dev without verified domain)
 			let emailResult: SendEmailResult;
@@ -276,6 +286,7 @@ export function createNotificationService(
 					inviterName,
 					groupName,
 					inviteUrl,
+					locale,
 				});
 				// Log but don't fail if email fails - notifications still work
 				if (!emailResult.success) {

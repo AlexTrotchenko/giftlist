@@ -1,3 +1,5 @@
+/// <reference path="../../worker-configuration.d.ts" />
+
 /**
  * Scheduled job for claim expiration management
  *

@@ -9,7 +9,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClaimButton } from "@/components/ClaimButton";
-import { cn, formatPrice, getExpirationText, isExpiringSoon } from "@/lib/utils";
+import { cn, isExpiringSoon } from "@/lib/utils";
+import { getLocale } from "@/i18n/LocaleContext";
+import { formatPrice, getExpirationText } from "@/i18n/formatting";
+import * as m from "@/paraglide/messages";
 
 interface SharedItemCardProps {
 	sharedItem: SharedItem;
@@ -18,6 +21,7 @@ interface SharedItemCardProps {
 
 export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProps) {
 	const { item, owner, sharedVia, claims = [], claimableAmount } = sharedItem;
+	const locale = getLocale();
 
 	// Determine if current user is the owner (should not see claim badges)
 	const isOwner = owner.id === currentUserId;
@@ -53,7 +57,7 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 					/>
 				) : (
 					<div className="flex h-full w-full items-center justify-center">
-						<span className="text-sm text-muted-foreground">No image</span>
+						<span className="text-sm text-muted-foreground">{m.common_noImage()}</span>
 					</div>
 				)}
 
@@ -68,7 +72,7 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 								)}
 							>
 								<Check className="size-3" />
-								Claimed
+								{m.claims_fullyClaimedByOther()}
 							</Badge>
 						)}
 						{expiringClaim && expiringClaim.expiresAt && (
@@ -79,7 +83,7 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 								)}
 							>
 								<AlertTriangle className="size-3" />
-								{getExpirationText(expiringClaim.expiresAt)}
+								{getExpirationText(expiringClaim.expiresAt, locale)}
 							</Badge>
 						)}
 					</div>
@@ -91,7 +95,7 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 					<CardTitle className="line-clamp-2 text-base">{item.name}</CardTitle>
 					{item.price !== null && (
 						<span className="shrink-0 font-semibold text-primary">
-							{formatPrice(item.price)}
+							{formatPrice(item.price, locale)}
 						</span>
 					)}
 				</div>
@@ -113,9 +117,9 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 				{!isOwner && isPartiallyClaimed && item.price !== null && (
 					<div className="mt-3 space-y-1">
 						<div className="flex items-center justify-between text-xs">
-							<span className="text-muted-foreground">Claim progress</span>
+							<span className="text-muted-foreground">{m.claims_claimProgress()}</span>
 							<span className="font-medium">
-								{formatPrice(claimedAmount)} / {formatPrice(item.price)}
+								{formatPrice(claimedAmount, locale)} / {formatPrice(item.price, locale)}
 							</span>
 						</div>
 						<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -149,7 +153,7 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 						className="inline-flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
 					>
 						<ExternalLink className="size-3.5" />
-						View product
+						{m.common_viewProduct()}
 					</a>
 				) : (
 					<span />

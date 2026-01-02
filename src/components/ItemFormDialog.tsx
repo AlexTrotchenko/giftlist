@@ -21,6 +21,10 @@ import {
 } from "@/hooks/useItemRecipients";
 import type { Item } from "@/lib/api";
 import { createItemSchema, updateItemSchema } from "@/lib/validations/item";
+import { resolveValidationMessage } from "@/i18n/zod-messages";
+import * as m from "@/paraglide/messages";
+import { getLocale } from "@/paraglide/runtime";
+import { getCurrency } from "@/i18n/formatting";
 
 interface ItemFormDialogProps {
 	open: boolean;
@@ -131,7 +135,7 @@ export function ItemFormDialog({
 		}
 
 		if (formData.price && parsePrice(formData.price) === null) {
-			newErrors.price = "Invalid price format";
+			newErrors.price = m.validation_invalidPriceFormat();
 		}
 
 		setErrors(newErrors);
@@ -189,23 +193,26 @@ export function ItemFormDialog({
 	const mutationError =
 		createItem.error || updateItem.error || setItemRecipients.error;
 
+	const locale = getLocale();
+	const currency = getCurrency(locale);
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[425px]">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
-						<DialogTitle>{isEditing ? "Edit Item" : "Add Item"}</DialogTitle>
+						<DialogTitle>{isEditing ? m.item_editItem() : m.item_addItem()}</DialogTitle>
 						<DialogDescription>
 							{isEditing
-								? "Update the details of your wishlist item."
-								: "Add a new item to your wishlist."}
+								? m.item_editDescription()
+								: m.item_addDescription()}
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="grid gap-4 py-4">
 						<div className="grid gap-2">
 							<Label htmlFor="name">
-								Name <span className="text-destructive">*</span>
+								{m.item_name()} <span className="text-destructive">*</span>
 							</Label>
 							<Input
 								id="name"
@@ -213,16 +220,16 @@ export function ItemFormDialog({
 								onChange={(e) =>
 									setFormData((prev) => ({ ...prev, name: e.target.value }))
 								}
-								placeholder="Enter item name"
+								placeholder={m.item_namePlaceholder()}
 								aria-invalid={!!errors.name}
 							/>
 							{errors.name && (
-								<p className="text-sm text-destructive">{errors.name}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.name)}</p>
 							)}
 						</div>
 
 						<div className="grid gap-2">
-							<Label>Image</Label>
+							<Label>{m.item_image()}</Label>
 							<ImageUpload
 								value={formData.imageUrl}
 								onChange={(url) =>
@@ -231,12 +238,12 @@ export function ItemFormDialog({
 								disabled={isLoading}
 							/>
 							{errors.imageUrl && (
-								<p className="text-sm text-destructive">{errors.imageUrl}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.imageUrl)}</p>
 							)}
 						</div>
 
 						<div className="grid gap-2">
-							<Label htmlFor="url">URL</Label>
+							<Label htmlFor="url">{m.item_url()}</Label>
 							<Input
 								id="url"
 								type="url"
@@ -244,16 +251,16 @@ export function ItemFormDialog({
 								onChange={(e) =>
 									setFormData((prev) => ({ ...prev, url: e.target.value }))
 								}
-								placeholder="https://example.com/product"
+								placeholder={m.item_urlPlaceholder()}
 								aria-invalid={!!errors.url}
 							/>
 							{errors.url && (
-								<p className="text-sm text-destructive">{errors.url}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.url)}</p>
 							)}
 						</div>
 
 						<div className="grid gap-2">
-							<Label htmlFor="price">Price ($)</Label>
+							<Label htmlFor="price">{m.item_priceLabel({ currency })}</Label>
 							<Input
 								id="price"
 								type="number"
@@ -263,34 +270,34 @@ export function ItemFormDialog({
 								onChange={(e) =>
 									setFormData((prev) => ({ ...prev, price: e.target.value }))
 								}
-								placeholder="0.00"
+								placeholder={m.item_pricePlaceholder()}
 								aria-invalid={!!errors.price}
 							/>
 							{errors.price && (
-								<p className="text-sm text-destructive">{errors.price}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.price)}</p>
 							)}
 						</div>
 
 						<div className="grid gap-2">
-							<Label htmlFor="notes">Notes</Label>
+							<Label htmlFor="notes">{m.item_notes()}</Label>
 							<Textarea
 								id="notes"
 								value={formData.notes}
 								onChange={(e) =>
 									setFormData((prev) => ({ ...prev, notes: e.target.value }))
 								}
-								placeholder="Any additional notes..."
+								placeholder={m.item_notesPlaceholder()}
 								rows={3}
 								aria-invalid={!!errors.notes}
 							/>
 							{errors.notes && (
-								<p className="text-sm text-destructive">{errors.notes}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.notes)}</p>
 							)}
 						</div>
 
 						{groups.length > 0 && (
 							<div className="grid gap-2">
-								<Label>Share with</Label>
+								<Label>{m.item_shareWith()}</Label>
 								<RecipientsPicker
 									groups={groups}
 									selectedGroupIds={formData.recipientGroupIds}
@@ -319,14 +326,14 @@ export function ItemFormDialog({
 							onClick={() => onOpenChange(false)}
 							disabled={isLoading}
 						>
-							Cancel
+							{m.common_cancel()}
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading
-								? "Saving..."
+								? m.common_saving()
 								: isEditing
-									? "Save Changes"
-									: "Add Item"}
+									? m.common_saveChanges()
+									: m.item_addItem()}
 						</Button>
 					</DialogFooter>
 				</form>

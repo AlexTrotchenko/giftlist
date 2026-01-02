@@ -15,6 +15,9 @@ import {
 } from "@/hooks/useNotifications";
 import type { NotificationResponse } from "@/db/types";
 import { cn } from "@/lib/utils";
+import { LocaleProvider, getLocale, type Locale } from "@/i18n/LocaleContext";
+import { formatTimeAgo } from "@/i18n/formatting";
+import * as m from "@/paraglide/messages";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -25,20 +28,10 @@ const queryClient = new QueryClient({
 	},
 });
 
-function formatTimeAgo(dateString: string | null): string {
+function getTimeAgoText(dateString: string | null): string {
 	if (!dateString) return "";
-	const date = new Date(dateString);
-	const now = new Date();
-	const diffMs = now.getTime() - date.getTime();
-	const diffMins = Math.floor(diffMs / 60000);
-	const diffHours = Math.floor(diffMins / 60);
-	const diffDays = Math.floor(diffHours / 24);
-
-	if (diffMins < 1) return "Just now";
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
-	return date.toLocaleDateString();
+	const locale = getLocale();
+	return formatTimeAgo(dateString, locale);
 }
 
 function NotificationItem({
@@ -71,7 +64,7 @@ function NotificationItem({
 						{notification.body}
 					</p>
 					<p className="mt-1 text-muted-foreground text-xs">
-						{formatTimeAgo(notification.createdAt)}
+						{getTimeAgoText(notification.createdAt)}
 					</p>
 				</div>
 				{!notification.read && (
@@ -106,7 +99,7 @@ function NotificationList() {
 					variant="ghost"
 					size="icon"
 					className="relative"
-					aria-label={`${unreadCount} unread notifications`}
+					aria-label={m.notifications_unreadCount({ count: unreadCount })}
 					aria-haspopup="true"
 				>
 					<Bell className="size-5" />
@@ -123,7 +116,7 @@ function NotificationList() {
 				aria-label="Notifications"
 			>
 				<div className="flex items-center justify-between border-b p-3">
-					<h3 className="font-semibold">Notifications</h3>
+					<h3 className="font-semibold">{m.notifications_title()}</h3>
 					{hasUnread && (
 						<Button
 							variant="ghost"
@@ -137,7 +130,7 @@ function NotificationList() {
 							) : (
 								<Check className="mr-1 size-3" />
 							)}
-							Mark all read
+							{m.notifications_markAllRead()}
 						</Button>
 					)}
 				</div>
@@ -148,7 +141,7 @@ function NotificationList() {
 						</div>
 					) : notifications.length === 0 ? (
 						<p className="p-8 text-center text-muted-foreground text-sm">
-							No notifications
+							{m.notifications_empty()}
 						</p>
 					) : (
 						<ul role="list" className="divide-y p-1">
@@ -167,10 +160,16 @@ function NotificationList() {
 	);
 }
 
-export function NotificationBell() {
+interface NotificationBellProps {
+	locale: Locale;
+}
+
+export function NotificationBell({ locale }: NotificationBellProps) {
 	return (
-		<QueryClientProvider client={queryClient}>
-			<NotificationList />
-		</QueryClientProvider>
+		<LocaleProvider initialLocale={locale}>
+			<QueryClientProvider client={queryClient}>
+				<NotificationList />
+			</QueryClientProvider>
+		</LocaleProvider>
 	);
 }

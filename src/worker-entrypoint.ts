@@ -1,3 +1,5 @@
+/// <reference path="../worker-configuration.d.ts" />
+
 /**
  * Custom Cloudflare Worker entrypoint
  *

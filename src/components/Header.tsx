@@ -9,49 +9,58 @@ import { Button } from "@/components/ui/button";
 import { InvitationsDropdown } from "@/components/InvitationsDropdown";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import * as m from "@/paraglide/messages";
+import { localizeHref, type Locale } from "@/paraglide/runtime";
 
-export function Header() {
+interface HeaderProps {
+	locale?: Locale;
+	currentPath?: string;
+}
+
+export function Header({ locale, currentPath }: HeaderProps) {
 	return (
 		<header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 			<div className="container mx-auto flex h-14 max-w-screen-xl items-center px-4">
-				<a href="/" className="flex items-center gap-2 font-semibold">
+				<a href={localizeHref("/")} className="flex items-center gap-2 font-semibold">
 					<Gift className="size-5" />
-					<span>GiftList</span>
+					<span>{m.common_appName()}</span>
 				</a>
 
 				<nav className="ml-8 hidden gap-6 md:flex">
 					<a
-						href="/wishlist"
+						href={localizeHref("/wishlist")}
 						className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
 					>
-						My Wishlist
+						{m.nav_myWishlist()}
 					</a>
 					<a
-						href="/shared"
+						href={localizeHref("/shared")}
 						className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
 					>
-						Shared With Me
+						{m.nav_sharedWithMe()}
 					</a>
 					<a
-						href="/groups"
+						href={localizeHref("/groups")}
 						className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
 					>
-						Groups
+						{m.nav_groups()}
 					</a>
 				</nav>
 
 				<div className="ml-auto flex items-center gap-4">
+					<LanguageSwitcher locale={locale ?? "en"} currentPath={currentPath} />
 					<ThemeSwitcher />
 					<SignedOut>
 						<SignInButton mode="modal">
 							<Button variant="default" size="sm">
-								Sign In
+								{m.auth_signIn()}
 							</Button>
 						</SignInButton>
 					</SignedOut>
 					<SignedIn>
-						<InvitationsDropdown />
-						<NotificationBell />
+						<InvitationsDropdown locale={locale ?? "en"} />
+						<NotificationBell locale={locale ?? "en"} />
 						<UserButton
 							appearance={{
 								elements: {

@@ -14,7 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useCreateClaim } from "@/hooks/useClaims";
 import type { ClaimWithUserResponse } from "@/db/types";
-import { cn, formatPrice, getExpirationText } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { formatPrice, getExpirationText } from "@/i18n/formatting";
+import { getLocale } from "@/paraglide/runtime";
+import * as m from "@/paraglide/messages";
 
 interface PartialClaimDialogProps {
 	open: boolean;
@@ -51,6 +54,7 @@ export function PartialClaimDialog({
 	currentUserId,
 }: PartialClaimDialogProps) {
 	const createClaim = useCreateClaim();
+	const locale = getLocale();
 
 	const [claimType, setClaimType] = useState<ClaimType>("full");
 	const [partialAmount, setPartialAmount] = useState("");
@@ -84,13 +88,13 @@ export function PartialClaimDialog({
 		const amountCents = parseAmount(partialAmount);
 
 		if (amountCents === null) {
-			setError("Please enter a valid amount");
+			setError(m.validation_pleaseEnterValidAmount());
 			return;
 		}
 
 		if (amountCents > claimableAmount) {
 			setError(
-				`Amount cannot exceed remaining ${formatPrice(claimableAmount)}`,
+				m.validation_amountExceedsRemaining({ amount: formatPrice(claimableAmount, locale) }),
 			);
 			return;
 		}
@@ -128,7 +132,7 @@ export function PartialClaimDialog({
 			<DialogContent className="sm:max-w-[425px]">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
-						<DialogTitle>Claim Item</DialogTitle>
+						<DialogTitle>{m.claims_claimItem()}</DialogTitle>
 						<DialogDescription className="line-clamp-1">
 							{itemName}
 						</DialogDescription>
@@ -138,8 +142,8 @@ export function PartialClaimDialog({
 						{/* Price & Progress */}
 						<div className="space-y-2">
 							<div className="flex items-center justify-between text-sm">
-								<span className="text-muted-foreground">Item Price</span>
-								<span className="font-medium">{formatPrice(itemPrice)}</span>
+								<span className="text-muted-foreground">{m.claims_itemPrice()}</span>
+								<span className="font-medium">{formatPrice(itemPrice, locale)}</span>
 							</div>
 							{claimedAmount > 0 && (
 								<>
@@ -151,10 +155,10 @@ export function PartialClaimDialog({
 									</div>
 									<div className="flex items-center justify-between text-xs text-muted-foreground">
 										<span>
-											{formatPrice(claimedAmount)} claimed
+											{m.claims_claimed({ amount: formatPrice(claimedAmount, locale) })}
 										</span>
 										<span>
-											{formatPrice(claimableAmount)} remaining
+											{m.claims_remaining({ amount: formatPrice(claimableAmount, locale) })}
 										</span>
 									</div>
 								</>
@@ -163,7 +167,7 @@ export function PartialClaimDialog({
 
 						{/* Claim Type Selection */}
 						<div className="space-y-2">
-							<Label>Claim Type</Label>
+							<Label>{m.claims_claimType()}</Label>
 							<div className="flex gap-2">
 								<Button
 									type="button"
@@ -172,7 +176,7 @@ export function PartialClaimDialog({
 									onClick={() => setClaimType("full")}
 									disabled={isLoading}
 								>
-									Full Claim
+									{m.claims_fullClaim()}
 								</Button>
 								<Button
 									type="button"
@@ -181,7 +185,7 @@ export function PartialClaimDialog({
 									onClick={() => setClaimType("partial")}
 									disabled={isLoading}
 								>
-									Partial Amount
+									{m.claims_partialAmount()}
 								</Button>
 							</div>
 						</div>
@@ -190,7 +194,7 @@ export function PartialClaimDialog({
 						{claimType === "partial" && (
 							<div className="space-y-2">
 								<Label htmlFor="amount">
-									Amount to Claim ($)
+									{m.claims_amountToClaim()}
 								</Label>
 								<Input
 									id="amount"
@@ -205,7 +209,7 @@ export function PartialClaimDialog({
 									aria-invalid={!!error}
 								/>
 								<p className="text-xs text-muted-foreground">
-									Maximum: {formatPrice(claimableAmount)}
+									{m.claims_maximum({ amount: formatPrice(claimableAmount, locale) })}
 								</p>
 							</div>
 						)}
@@ -217,7 +221,7 @@ export function PartialClaimDialog({
 						{existingClaims.length > 0 && (
 							<div className="space-y-2">
 								<Label className="text-muted-foreground">
-									Existing Claims ({existingClaims.length})
+									{m.claims_existingClaims({ count: existingClaims.length })}
 								</Label>
 								<div className="max-h-32 space-y-2 overflow-y-auto rounded-md border p-2">
 									{myClaims.map((claim) => (
@@ -230,16 +234,16 @@ export function PartialClaimDialog({
 										>
 											<div className="flex items-center gap-2">
 												<User className="size-3.5 text-muted-foreground" />
-												<span className="font-medium">You</span>
+												<span className="font-medium">{m.common_you()}</span>
 												{claim.amount !== null && (
 													<span className="text-muted-foreground">
-														({formatPrice(claim.amount)})
+														({formatPrice(claim.amount, locale)})
 													</span>
 												)}
 											</div>
 											{claim.expiresAt && (
 												<Badge variant="secondary" className="text-xs">
-													{getExpirationText(claim.expiresAt)}
+													{getExpirationText(claim.expiresAt, locale)}
 												</Badge>
 											)}
 										</div>
@@ -251,16 +255,16 @@ export function PartialClaimDialog({
 										>
 											<div className="flex items-center gap-2">
 												<User className="size-3.5 text-muted-foreground" />
-												<span>{claim.user.name || "Someone"}</span>
+												<span>{claim.user.name || m.common_someone()}</span>
 												{claim.amount !== null && (
 													<span className="text-muted-foreground">
-														({formatPrice(claim.amount)})
+														({formatPrice(claim.amount, locale)})
 													</span>
 												)}
 											</div>
 											{claim.expiresAt && (
 												<Badge variant="secondary" className="text-xs">
-													{getExpirationText(claim.expiresAt)}
+													{getExpirationText(claim.expiresAt, locale)}
 												</Badge>
 											)}
 										</div>
@@ -277,18 +281,20 @@ export function PartialClaimDialog({
 							onClick={() => onOpenChange(false)}
 							disabled={isLoading}
 						>
-							Cancel
+							{m.common_cancel()}
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading ? (
 								<>
 									<Loader2 className="mr-2 size-4 animate-spin" />
-									Claiming...
+									{m.claims_claiming()}
 								</>
-							) : claimType === "full" ? (
-								`Claim ${formatPrice(claimableAmount)}`
 							) : (
-								`Claim ${partialAmount ? formatPrice(parseAmount(partialAmount) ?? 0) : "$0.00"}`
+								m.claims_claimAmount({
+									amount: claimType === "full"
+										? formatPrice(claimableAmount, locale)
+										: formatPrice(parseAmount(partialAmount) ?? 0, locale),
+								})
 							)}
 						</Button>
 					</DialogFooter>

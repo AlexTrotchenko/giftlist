@@ -6,14 +6,16 @@ import type { GroupMemberResponse, GroupResponse, InvitationResponse } from "@/d
 import AppLayout from "@/layouts/AppLayout.astro";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
+import { getLocale, localizeHref } from "@/paraglide/runtime";
 
 const db = createDb(Astro.locals.runtime.env.DB);
 const auth = getAuthAdapter(Astro.locals.runtime.env);
 
 const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
+const locale = getLocale();
 
 if (!authUser) {
-	return Astro.redirect("/");
+	return Astro.redirect(localizeHref("/"));
 }
 
 // Look up internal user by Clerk ID, create if doesn't exist
@@ -38,7 +40,7 @@ if (!user) {
 
 const groupId = Astro.params.id;
 if (!groupId) {
-	return Astro.redirect("/groups");
+	return Astro.redirect(localizeHref("/groups"));
 }
 
 // Get the group
@@ -49,7 +51,7 @@ const group = await db
 	.get();
 
 if (!group) {
-	return Astro.redirect("/groups");
+	return Astro.redirect(localizeHref("/groups"));
 }
 
 // Check if user is owner or member
@@ -61,7 +63,7 @@ const membership = await db
 	.get();
 
 if (!isOwner && !membership) {
-	return Astro.redirect("/groups");
+	return Astro.redirect(localizeHref("/groups"));
 }
 
 // Get the current user's role
@@ -116,7 +118,7 @@ const serializedInvitations: InvitationResponse[] = groupInvitations.map((inv) =
 }));
 ---
 
-<AppLayout title={`${group.name} - GiftList`}>
+<AppLayout title={`${group.name} - GiftList`} locale={locale}>
 	<GroupDetailPage
 		client:load
 		initialGroup={serializedGroup}

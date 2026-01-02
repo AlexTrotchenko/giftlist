@@ -15,6 +15,9 @@ import {
 } from "@/hooks/useInvitations";
 import type { InvitationWithGroup } from "@/pages/api/invitations/index";
 import { cn } from "@/lib/utils";
+import { LocaleProvider, getLocale, type Locale } from "@/i18n/LocaleContext";
+import { formatTimeAgo } from "@/i18n/formatting";
+import * as m from "@/paraglide/messages";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -25,20 +28,10 @@ const queryClient = new QueryClient({
 	},
 });
 
-function formatTimeAgo(dateString: string | null): string {
+function getTimeAgoText(dateString: string | null): string {
 	if (!dateString) return "";
-	const date = new Date(dateString);
-	const now = new Date();
-	const diffMs = now.getTime() - date.getTime();
-	const diffMins = Math.floor(diffMs / 60000);
-	const diffHours = Math.floor(diffMins / 60);
-	const diffDays = Math.floor(diffHours / 24);
-
-	if (diffMins < 1) return "Just now";
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
-	return date.toLocaleDateString();
+	const locale = getLocale();
+	return formatTimeAgo(dateString, locale);
 }
 
 function InvitationItem({
@@ -70,10 +63,10 @@ function InvitationItem({
 				<div className="min-w-0 flex-1">
 					<p className="font-medium text-sm">{invitation.group.name}</p>
 					<p className="mt-0.5 text-muted-foreground text-xs">
-						Invited by {invitation.inviter.name ?? invitation.inviter.email}
+						{m.invitations_invitedBy({ name: invitation.inviter.name ?? invitation.inviter.email })}
 					</p>
 					<p className="mt-0.5 text-muted-foreground text-xs">
-						Role: {invitation.role} · {formatTimeAgo(invitation.createdAt)}
+						{m.invitations_roleTime({ role: invitation.role, time: getTimeAgoText(invitation.createdAt) })}
 					</p>
 					<div className="mt-2 flex gap-2">
 						<Button
@@ -88,7 +81,7 @@ function InvitationItem({
 							) : (
 								<Check className="size-3" />
 							)}
-							Accept
+							{m.invitations_accept()}
 						</Button>
 						<Button
 							size="sm"
@@ -102,7 +95,7 @@ function InvitationItem({
 							) : (
 								<X className="size-3" />
 							)}
-							Decline
+							{m.invitations_decline()}
 						</Button>
 					</div>
 				</div>
@@ -148,7 +141,7 @@ function InvitationsList() {
 					variant="ghost"
 					size="icon"
 					className="relative"
-					aria-label={`${invitationCount} pending invitations`}
+					aria-label={m.invitations_pendingCount({ count: invitationCount })}
 					aria-haspopup="true"
 				>
 					<Mail className="size-5" />
@@ -165,7 +158,7 @@ function InvitationsList() {
 				aria-label="Invitations"
 			>
 				<div className="flex items-center justify-between border-b p-3">
-					<h3 className="font-semibold">Group Invitations</h3>
+					<h3 className="font-semibold">{m.invitations_title()}</h3>
 				</div>
 				<div className="max-h-80 overflow-y-auto">
 					{isLoadingList && !invitations ? (
@@ -174,7 +167,7 @@ function InvitationsList() {
 						</div>
 					) : !invitations || invitations.length === 0 ? (
 						<p className="p-8 text-center text-muted-foreground text-sm">
-							No pending invitations
+							{m.invitations_empty()}
 						</p>
 					) : (
 						<ul className="divide-y p-1">
@@ -202,10 +195,16 @@ function InvitationsList() {
 	);
 }
 
-export function InvitationsDropdown() {
+interface InvitationsDropdownProps {
+	locale: Locale;
+}
+
+export function InvitationsDropdown({ locale }: InvitationsDropdownProps) {
 	return (
-		<QueryClientProvider client={queryClient}>
-			<InvitationsList />
-		</QueryClientProvider>
+		<LocaleProvider initialLocale={locale}>
+			<QueryClientProvider client={queryClient}>
+				<InvitationsList />
+			</QueryClientProvider>
+		</LocaleProvider>
 	);
 }

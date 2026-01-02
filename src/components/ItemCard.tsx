@@ -10,6 +10,9 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { useItemRecipients } from "@/hooks/useItemRecipients";
+import * as m from "@/paraglide/messages";
+import { getLocale } from "@/paraglide/runtime";
+import { formatPrice } from "@/i18n/formatting";
 
 interface ItemCardProps {
 	item: ItemResponse;
@@ -17,15 +20,9 @@ interface ItemCardProps {
 	onDelete: (item: ItemResponse) => void;
 }
 
-function formatPrice(cents: number): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(cents / 100);
-}
-
 export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 	const { data: recipients = [] } = useItemRecipients(item.id);
+	const locale = getLocale();
 
 	return (
 		<Card className="group overflow-hidden transition-shadow hover:shadow-md">
@@ -41,7 +38,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 					/>
 				) : (
 					<div className="flex h-full w-full items-center justify-center">
-						<span className="text-sm text-muted-foreground">No image</span>
+						<span className="text-sm text-muted-foreground">{m.common_noImage()}</span>
 					</div>
 				)}
 			</div>
@@ -51,7 +48,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 					<CardTitle className="line-clamp-2 text-base">{item.name}</CardTitle>
 					{item.price !== null && (
 						<span className="shrink-0 font-semibold text-primary">
-							{formatPrice(item.price)}
+							{formatPrice(item.price, locale)}
 						</span>
 					)}
 				</div>
@@ -88,7 +85,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 						className="inline-flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
 					>
 						<ExternalLink className="size-3.5" />
-						View product
+						{m.common_viewProduct()}
 					</a>
 				) : (
 					<span />
@@ -99,7 +96,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 						size="icon"
 						className="size-8"
 						onClick={() => onEdit(item)}
-						aria-label={`Edit ${item.name}`}
+						aria-label={m.item_editAriaLabel({ name: item.name })}
 					>
 						<Pencil className="size-4" />
 					</Button>
@@ -108,7 +105,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 						size="icon"
 						className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
 						onClick={() => onDelete(item)}
-						aria-label={`Delete ${item.name}`}
+						aria-label={m.item_deleteAriaLabel({ name: item.name })}
 					>
 						<Trash2 className="size-4" />
 					</Button>

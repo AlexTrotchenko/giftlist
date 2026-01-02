@@ -14,11 +14,14 @@
  *   inviterName: "John Doe",
  *   groupName: "Family Wishlist",
  *   inviteUrl: "https://example.com/invite/abc123",
+ *   locale: "en", // or "uk" for Ukrainian
  * });
  * ```
  */
 
 import { Resend } from "resend";
+import type { Locale } from "@/i18n/LocaleContext";
+import * as m from "@/paraglide/messages";
 
 export interface SendEmailResult {
 	success: boolean;
@@ -31,6 +34,7 @@ export interface InvitationEmailData {
 	inviterName: string;
 	groupName: string;
 	inviteUrl: string;
+	locale?: Locale;
 }
 
 export interface EmailClient {
@@ -59,44 +63,56 @@ export function createEmailClient(apiKey: string): EmailClient {
 
 	return {
 		async sendInvitation(data: InvitationEmailData): Promise<SendEmailResult> {
-			const { to, inviterName, groupName, inviteUrl } = data;
+			const { to, inviterName, groupName, inviteUrl, locale = "en" } = data;
+
+			// Get localized strings using paraglide messages with locale override
+			const opts = { locale };
+			const subject = m.email_invitationSubject(
+				{ inviterName, groupName },
+				opts,
+			);
+			const heading = m.email_invitationHeading({}, opts);
+			const body = m.email_invitationBody({ inviterName, groupName }, opts);
+			const description = m.email_invitationDescription({}, opts);
+			const actionText = m.email_invitationAction({}, opts);
+			const linkFallback = m.email_invitationLinkFallback({}, opts);
+			const footer = m.email_invitationFooter({}, opts);
 
 			const html = `
 <!DOCTYPE html>
-<html>
+<html lang="${locale}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">You're Invited!</h1>
+    <h1 style="color: white; margin: 0; font-size: 24px;">${heading}</h1>
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; border-top: none; border-radius: 0 0 12px 12px;">
     <p style="font-size: 16px; margin-bottom: 20px;">
-      <strong>${inviterName}</strong> has invited you to join their group <strong>"${groupName}"</strong> on Giftlist.
+      ${body}
     </p>
 
     <p style="font-size: 14px; color: #666; margin-bottom: 24px;">
-      Giftlist makes it easy to share wishlists with friends and family, so everyone knows exactly what to get.
+      ${description}
     </p>
 
     <div style="text-align: center; margin: 30px 0;">
       <a href="${inviteUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-        Accept Invitation
+        ${actionText}
       </a>
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      If the button doesn't work, copy and paste this link:<br>
+      ${linkFallback}<br>
       <a href="${inviteUrl}" style="color: #667eea; word-break: break-all;">${inviteUrl}</a>
     </p>
   </div>
 
   <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
-    You received this email because someone invited you to Giftlist.<br>
-    If you didn't expect this invitation, you can safely ignore this email.
+    ${footer}
   </p>
 </body>
 </html>
@@ -106,7 +122,7 @@ export function createEmailClient(apiKey: string): EmailClient {
 				const { data, error } = await resend.emails.send({
 					from: DEFAULT_FROM,
 					to,
-					subject: `${inviterName} invited you to join "${groupName}" on Giftlist`,
+					subject,
 					html,
 				});
 

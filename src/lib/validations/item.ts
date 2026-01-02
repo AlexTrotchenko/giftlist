@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ValidationMessageKeys } from "@/i18n/zod-messages";
 
 const imageUrlSchema = z
 	.string()
@@ -15,22 +16,34 @@ const imageUrlSchema = z
 				return false;
 			}
 		},
-		{ message: "Invalid image URL" },
+		{ message: ValidationMessageKeys.invalidImageUrl },
 	);
 
 /**
  * Schema for creating a new wishlist item
  */
 export const createItemSchema = z.object({
-	name: z.string().min(1, "Name is required").max(255, "Name too long"),
-	url: z.string().url("Invalid URL").max(2048).nullable().optional(),
-	price: z
-		.number()
-		.int("Price must be an integer (cents)")
-		.min(0, "Price cannot be negative")
+	name: z
+		.string()
+		.min(1, ValidationMessageKeys.nameRequired)
+		.max(255, ValidationMessageKeys.nameTooLong),
+	url: z
+		.string()
+		.url(ValidationMessageKeys.invalidUrl)
+		.max(2048)
 		.nullable()
 		.optional(),
-	notes: z.string().max(1000, "Notes too long").nullable().optional(),
+	price: z
+		.number()
+		.int(ValidationMessageKeys.priceMustBeInteger)
+		.min(0, ValidationMessageKeys.priceCannotBeNegative)
+		.nullable()
+		.optional(),
+	notes: z
+		.string()
+		.max(1000, ValidationMessageKeys.notesTooLong)
+		.nullable()
+		.optional(),
 	imageUrl: imageUrlSchema.nullable().optional(),
 });
 
@@ -41,17 +54,26 @@ export const createItemSchema = z.object({
 export const updateItemSchema = z.object({
 	name: z
 		.string()
-		.min(1, "Name is required")
-		.max(255, "Name too long")
+		.min(1, ValidationMessageKeys.nameRequired)
+		.max(255, ValidationMessageKeys.nameTooLong)
 		.optional(),
-	url: z.string().url("Invalid URL").max(2048).nullable().optional(),
-	price: z
-		.number()
-		.int("Price must be an integer (cents)")
-		.min(0, "Price cannot be negative")
+	url: z
+		.string()
+		.url(ValidationMessageKeys.invalidUrl)
+		.max(2048)
 		.nullable()
 		.optional(),
-	notes: z.string().max(1000, "Notes too long").nullable().optional(),
+	price: z
+		.number()
+		.int(ValidationMessageKeys.priceMustBeInteger)
+		.min(0, ValidationMessageKeys.priceCannotBeNegative)
+		.nullable()
+		.optional(),
+	notes: z
+		.string()
+		.max(1000, ValidationMessageKeys.notesTooLong)
+		.nullable()
+		.optional(),
 	imageUrl: imageUrlSchema.nullable().optional(),
 });
 

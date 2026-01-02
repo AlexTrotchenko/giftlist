@@ -28,6 +28,7 @@ import {
 } from "@/hooks/useGroups";
 import { GroupFormDialog } from "./GroupFormDialog";
 import { InviteMemberDialog } from "./InviteMemberDialog";
+import * as m from "@/paraglide/messages";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -63,14 +64,14 @@ function getRoleBadge(role: string) {
 			return (
 				<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
 					<Crown className="size-3" />
-					Owner
+					{m.roles_owner()}
 				</span>
 			);
 		case "admin":
 			return (
 				<span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
 					<Shield className="size-3" />
-					Admin
+					{m.roles_admin()}
 				</span>
 			);
 		default:
@@ -117,7 +118,7 @@ function MemberCard({
 						<p className="truncate font-medium">
 							{member.user.name ?? member.user.email}
 							{isCurrentUser && (
-								<span className="ml-1 text-muted-foreground">(you)</span>
+								<span className="ml-1 text-muted-foreground">({m.common_you()})</span>
 							)}
 						</p>
 						{getRoleBadge(member.role)}
@@ -142,8 +143,8 @@ function MemberCard({
 					disabled={isRemoving}
 					aria-label={
 						isCurrentUser
-							? "Leave group"
-							: `Remove ${member.user.name ?? member.user.email}`
+							? m.groups_leaveGroupAriaLabel()
+							: m.groups_removeMemberAriaLabel({ name: member.user.name ?? member.user.email })
 					}
 				>
 					{isCurrentUser ? (
@@ -185,9 +186,9 @@ function PendingInvitationCard({
 					<div className="flex items-center gap-1 text-sm text-muted-foreground">
 						<Clock className="size-3" />
 						{isExpired ? (
-							<span className="text-destructive">Expired</span>
+							<span className="text-destructive">{m.invitations_expired()}</span>
 						) : (
-							<span>Expires {formattedDate}</span>
+							<span>{m.invitations_expires({ date: formattedDate })}</span>
 						)}
 					</div>
 				</div>
@@ -198,7 +199,7 @@ function PendingInvitationCard({
 				className="size-8 text-muted-foreground hover:text-foreground"
 				onClick={() => onCancel(invitation.id)}
 				disabled={isCancelling}
-				aria-label={`Cancel invitation to ${invitation.inviteeEmail}`}
+				aria-label={m.groups_cancelInvitationAriaLabel({ email: invitation.inviteeEmail })}
 			>
 				<X className="size-4" />
 			</Button>
@@ -236,8 +237,8 @@ function GroupDetailContent({
 		const isCurrentUser = userId === currentUserId;
 		const member = members.find((m) => m.userId === userId);
 		const message = isCurrentUser
-			? "Are you sure you want to leave this group?"
-			: `Remove ${member?.user.name ?? member?.user.email} from the group?`;
+			? m.groups_leaveConfirm()
+			: m.groups_removeConfirm({ name: member?.user.name ?? member?.user.email ?? "" });
 
 		if (window.confirm(message)) {
 			await removeMember.mutateAsync(userId);
@@ -248,7 +249,7 @@ function GroupDetailContent({
 	};
 
 	const handleCancelInvitation = async (invitationId: string) => {
-		if (window.confirm("Cancel this invitation?")) {
+		if (window.confirm(m.invitations_cancelInvitation())) {
 			await cancelInvitation.mutateAsync(invitationId);
 		}
 	};
@@ -268,7 +269,7 @@ function GroupDetailContent({
 					className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
 				>
 					<ArrowLeft className="size-4" />
-					Back to Groups
+					{m.groups_backToGroups()}
 				</a>
 
 				<div className="flex items-start justify-between gap-4">
@@ -292,13 +293,13 @@ function GroupDetailContent({
 								onClick={() => setEditDialogOpen(true)}
 							>
 								<Pencil className="size-4" />
-								Edit
+								{m.common_edit()}
 							</Button>
 						)}
 						{canManage && (
 							<Button size="sm" onClick={() => setInviteDialogOpen(true)}>
 								<UserPlus className="size-4" />
-								Invite
+								{m.groups_invite()}
 							</Button>
 						)}
 					</div>
@@ -310,13 +311,13 @@ function GroupDetailContent({
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-lg">
 						<Users className="size-5" />
-						Members ({members.length})
+						{m.groups_membersCount({ count: members.length })}
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
 					{members.length === 0 ? (
 						<p className="py-4 text-center text-muted-foreground">
-							No members yet
+							{m.groups_noMembersYet()}
 						</p>
 					) : (
 						members.map((member) => (
@@ -339,7 +340,7 @@ function GroupDetailContent({
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2 text-lg">
 							<Mail className="size-5" />
-							Pending Invitations ({pendingInvitations.length})
+							{m.groups_pendingInvitationsCount({ count: pendingInvitations.length })}
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-3">

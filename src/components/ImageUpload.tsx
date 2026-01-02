@@ -3,6 +3,7 @@ import { Upload, X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ALLOWED_IMAGE_TYPES, MAX_FILE_SIZE } from "@/lib/validations/upload";
+import * as m from "@/paraglide/messages";
 
 interface ImageUploadProps {
 	value?: string | null;
@@ -36,10 +37,10 @@ export function ImageUpload({
 
 	const validateFile = (file: File): string | null => {
 		if (!ALLOWED_IMAGE_TYPES.includes(file.type as typeof ALLOWED_IMAGE_TYPES[number])) {
-			return "File must be JPEG, PNG, WebP, or GIF";
+			return m.validation_fileMustBeImage();
 		}
 		if (file.size > MAX_FILE_SIZE) {
-			return `File must be ${MAX_FILE_SIZE_MB}MB or less (yours: ${formatFileSize(file.size)})`;
+			return m.validation_fileTooLarge();
 		}
 		return null;
 	};

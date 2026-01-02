@@ -6,6 +6,7 @@ import { GroupFormDialog } from "@/components/GroupFormDialog";
 import { Button } from "@/components/ui/button";
 import { useDeleteGroup, useGroups } from "@/hooks/useGroups";
 import type { GroupResponse } from "@/db/types";
+import * as m from "@/paraglide/messages";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -26,14 +27,13 @@ function EmptyState({ onAddGroup }: { onAddGroup: () => void }) {
 			<div className="mb-4 rounded-full bg-muted p-4">
 				<Users className="size-8 text-muted-foreground" />
 			</div>
-			<h2 className="mb-2 text-xl font-semibold">No groups yet</h2>
+			<h2 className="mb-2 text-xl font-semibold">{m.groups_emptyTitle()}</h2>
 			<p className="mb-6 max-w-sm text-muted-foreground">
-				Create groups to organize gift-giving with family and friends. Share
-				your wishlist with specific groups.
+				{m.groups_emptyDescription()}
 			</p>
 			<Button onClick={onAddGroup}>
 				<Plus className="size-4" />
-				Create your first group
+				{m.groups_createFirstGroup()}
 			</Button>
 		</div>
 	);
@@ -57,7 +57,7 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 	};
 
 	const handleDeleteGroup = async (group: GroupResponse) => {
-		if (window.confirm(`Delete "${group.name}"? This cannot be undone.`)) {
+		if (window.confirm(m.groups_deleteConfirm({ name: group.name }))) {
 			await deleteGroup.mutateAsync(group.id);
 		}
 	};
@@ -78,10 +78,10 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
 			<div className="mb-6 flex items-center justify-between">
-				<h1 className="text-2xl font-bold">My Groups</h1>
+				<h1 className="text-2xl font-bold">{m.groups_title()}</h1>
 				<Button onClick={handleAddGroup}>
 					<Plus className="size-4" />
-					Create Group
+					{m.groups_createGroup()}
 				</Button>
 			</div>
 

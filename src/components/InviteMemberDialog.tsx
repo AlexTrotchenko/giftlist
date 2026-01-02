@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { useInviteMember } from "@/hooks/useGroups";
 import { createInvitationSchema } from "@/lib/validations/invitation";
+import { resolveValidationMessage } from "@/i18n/zod-messages";
+import * as m from "@/paraglide/messages";
 
 interface InviteMemberDialogProps {
 	open: boolean;
@@ -95,17 +97,16 @@ export function InviteMemberDialog({
 			<DialogContent className="sm:max-w-[425px]">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
-						<DialogTitle>Invite Member</DialogTitle>
+						<DialogTitle>{m.invitations_inviteMember()}</DialogTitle>
 						<DialogDescription>
-							Send an invitation to join this group. They will receive an email
-							with a link to accept.
+							{m.invitations_inviteDescription()}
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="grid gap-4 py-4">
 						<div className="grid gap-2">
 							<Label htmlFor="email">
-								Email Address <span className="text-destructive">*</span>
+								{m.invitations_emailAddress()} <span className="text-destructive">*</span>
 							</Label>
 							<Input
 								id="email"
@@ -114,16 +115,16 @@ export function InviteMemberDialog({
 								onChange={(e) =>
 									setFormData((prev) => ({ ...prev, email: e.target.value }))
 								}
-								placeholder="friend@example.com"
+								placeholder={m.invitations_emailPlaceholder()}
 								aria-invalid={!!errors.email}
 							/>
 							{errors.email && (
-								<p className="text-sm text-destructive">{errors.email}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.email)}</p>
 							)}
 						</div>
 
 						<div className="grid gap-2">
-							<Label htmlFor="role">Role</Label>
+							<Label htmlFor="role">{m.roles_role()}</Label>
 							<Select
 								value={formData.role}
 								onValueChange={(value: "member" | "admin") =>
@@ -131,15 +132,15 @@ export function InviteMemberDialog({
 								}
 							>
 								<SelectTrigger id="role">
-									<SelectValue placeholder="Select a role" />
+									<SelectValue placeholder={m.invitations_selectRole()} />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="member">Member</SelectItem>
-									<SelectItem value="admin">Admin</SelectItem>
+									<SelectItem value="member">{m.roles_member()}</SelectItem>
+									<SelectItem value="admin">{m.roles_admin()}</SelectItem>
 								</SelectContent>
 							</Select>
 							<p className="text-xs text-muted-foreground">
-								Admins can invite and remove members.
+								{m.roles_adminDescription()}
 							</p>
 						</div>
 
@@ -155,10 +156,10 @@ export function InviteMemberDialog({
 							onClick={() => onOpenChange(false)}
 							disabled={isLoading}
 						>
-							Cancel
+							{m.common_cancel()}
 						</Button>
 						<Button type="submit" disabled={isLoading}>
-							{isLoading ? "Sending..." : "Send Invitation"}
+							{isLoading ? m.common_sending() : m.invitations_sendInvitation()}
 						</Button>
 					</DialogFooter>
 				</form>

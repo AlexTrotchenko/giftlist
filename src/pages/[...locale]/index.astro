@@ -1,0 +1,27 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import { getLocale, isLocale, baseLocale } from "@/paraglide/runtime";
+
+// Extract locale from URL path
+const pathSegments = Astro.url.pathname.split("/").filter(Boolean);
+const firstSegment = pathSegments[0];
+
+// Validate locale - redirect invalid locales to base locale
+if (firstSegment && !isLocale(firstSegment) && firstSegment !== "") {
+	// Invalid path that doesn't match a locale - this shouldn't happen with proper routing
+	return Astro.redirect("/");
+}
+
+const locale = getLocale();
+---
+
+<AppLayout title="GiftList - Share Your Wishlists" locale={locale}>
+	<div class="container mx-auto flex flex-col items-center justify-center px-4 py-24 text-center">
+		<h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+			Share Your Wishlists
+		</h1>
+		<p class="mt-4 max-w-lg text-lg text-muted-foreground">
+			Create and share wishlists with friends and family. Never get duplicate gifts again.
+		</p>
+	</div>
+</AppLayout>

@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { ValidationMessageKeys } from "@/i18n/zod-messages";
 
 /**
  * Schema for adding recipients (groups) to an item
  */
 export const addRecipientsSchema = z.object({
 	groupIds: z
-		.array(z.string().min(1, "Group ID is required"))
-		.min(1, "At least one group ID is required"),
+		.array(z.string().min(1, ValidationMessageKeys.groupIdRequired))
+		.min(1, ValidationMessageKeys.atLeastOneGroupRequired),
 });
 
 /**
@@ -14,8 +15,8 @@ export const addRecipientsSchema = z.object({
  */
 export const removeRecipientsSchema = z.object({
 	groupIds: z
-		.array(z.string().min(1, "Group ID is required"))
-		.min(1, "At least one group ID is required"),
+		.array(z.string().min(1, ValidationMessageKeys.groupIdRequired))
+		.min(1, ValidationMessageKeys.atLeastOneGroupRequired),
 });
 
 export type AddRecipientsInput = z.infer<typeof addRecipientsSchema>;

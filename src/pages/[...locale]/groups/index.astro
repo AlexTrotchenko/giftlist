@@ -5,14 +5,16 @@ import { groupMembers, groups, users } from "@/db/schema";
 import AppLayout from "@/layouts/AppLayout.astro";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
+import { getLocale, localizeHref } from "@/paraglide/runtime";
 
 const db = createDb(Astro.locals.runtime.env.DB);
 const auth = getAuthAdapter(Astro.locals.runtime.env);
 
 const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
+const locale = getLocale();
 
 if (!authUser) {
-	return Astro.redirect("/");
+	return Astro.redirect(localizeHref("/"));
 }
 
 // Look up internal user by Clerk ID, create if doesn't exist (handles missing webhook)
@@ -65,6 +67,6 @@ const serializedGroups = userGroups.map((group) => ({
 }));
 ---
 
-<AppLayout title="My Groups - GiftList">
+<AppLayout title="My Groups - GiftList" locale={locale}>
 	<GroupsPage client:load initialGroups={serializedGroups} />
 </AppLayout>

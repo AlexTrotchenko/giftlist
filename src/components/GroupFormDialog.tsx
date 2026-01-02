@@ -14,6 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateGroup, useUpdateGroup } from "@/hooks/useGroups";
 import type { GroupResponse } from "@/db/types";
 import { createGroupSchema, updateGroupSchema } from "@/lib/validations/group";
+import { resolveValidationMessage } from "@/i18n/zod-messages";
+import * as m from "@/paraglide/messages";
 
 interface GroupFormDialogProps {
 	open: boolean;
@@ -114,18 +116,18 @@ export function GroupFormDialog({
 			<DialogContent className="sm:max-w-[425px]">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
-						<DialogTitle>{isEditing ? "Edit Group" : "Create Group"}</DialogTitle>
+						<DialogTitle>{isEditing ? m.groups_editGroup() : m.groups_createGroup()}</DialogTitle>
 						<DialogDescription>
 							{isEditing
-								? "Update your group's details."
-								: "Create a group to share wishlists with family and friends."}
+								? m.groups_editDescription()
+								: m.groups_createDescription()}
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="grid gap-4 py-4">
 						<div className="grid gap-2">
 							<Label htmlFor="name">
-								Name <span className="text-destructive">*</span>
+								{m.groups_name()} <span className="text-destructive">*</span>
 							</Label>
 							<Input
 								id="name"
@@ -133,16 +135,16 @@ export function GroupFormDialog({
 								onChange={(e) =>
 									setFormData((prev) => ({ ...prev, name: e.target.value }))
 								}
-								placeholder="e.g., Family, Close Friends"
+								placeholder={m.groups_namePlaceholder()}
 								aria-invalid={!!errors.name}
 							/>
 							{errors.name && (
-								<p className="text-sm text-destructive">{errors.name}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.name)}</p>
 							)}
 						</div>
 
 						<div className="grid gap-2">
-							<Label htmlFor="description">Description</Label>
+							<Label htmlFor="description">{m.groups_description()}</Label>
 							<Textarea
 								id="description"
 								value={formData.description}
@@ -152,12 +154,12 @@ export function GroupFormDialog({
 										description: e.target.value,
 									}))
 								}
-								placeholder="What is this group for?"
+								placeholder={m.groups_descriptionPlaceholder()}
 								rows={3}
 								aria-invalid={!!errors.description}
 							/>
 							{errors.description && (
-								<p className="text-sm text-destructive">{errors.description}</p>
+								<p className="text-sm text-destructive">{resolveValidationMessage(errors.description)}</p>
 							)}
 						</div>
 
@@ -173,14 +175,14 @@ export function GroupFormDialog({
 							onClick={() => onOpenChange(false)}
 							disabled={isLoading}
 						>
-							Cancel
+							{m.common_cancel()}
 						</Button>
 						<Button type="submit" disabled={isLoading}>
 							{isLoading
-								? "Saving..."
+								? m.common_saving()
 								: isEditing
-									? "Save Changes"
-									: "Create Group"}
+									? m.common_saveChanges()
+									: m.groups_createGroup()}
 						</Button>
 					</DialogFooter>
 				</form>

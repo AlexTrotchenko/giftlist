@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn, formatPrice, getExpirationText, isExpiringSoon } from "@/lib/utils";
+import { cn, isExpiringSoon } from "@/lib/utils";
+import { formatPrice, getExpirationText } from "@/i18n/formatting";
+import { getLocale } from "@/paraglide/runtime";
+import * as m from "@/paraglide/messages";
 
 interface MyClaimCardProps {
 	claim: MyClaimResponse;
@@ -28,6 +31,7 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 	const { mutate: releaseClaim, isPending } = useReleaseClaim();
 	const { item, owner, expiresAt, amount } = claim;
 	const expiring = isExpiringSoon(expiresAt);
+	const locale = getLocale();
 
 	const handleRelease = () => {
 		releaseClaim(claim.id);
@@ -72,7 +76,7 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 							) : (
 								<Calendar className="size-3" />
 							)}
-							{getExpirationText(expiresAt)}
+							{getExpirationText(expiresAt, locale)}
 						</Badge>
 					</div>
 				)}
@@ -83,17 +87,17 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 					<CardTitle className="line-clamp-2 text-base">{item.name}</CardTitle>
 					{item.price !== null && (
 						<span className="shrink-0 font-semibold text-primary">
-							{amount !== null ? formatPrice(amount) : formatPrice(item.price)}
+							{amount !== null ? formatPrice(amount, locale) : formatPrice(item.price, locale)}
 						</span>
 					)}
 				</div>
 				{/* Owner info */}
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 					<User className="size-3" />
-					<span>{owner.name || "Unknown"}</span>
+					<span>{owner.name || m.claims_unknownOwner()}</span>
 					{amount !== null && item.price !== null && (
 						<span className="ml-auto text-xs text-muted-foreground">
-							(partial of {formatPrice(item.price)})
+							{m.claims_partialOfPrice({ amount: formatPrice(item.price, locale) })}
 						</span>
 					)}
 				</div>
@@ -102,7 +106,7 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 			<CardContent className="py-0">
 				{/* Claim type indicator */}
 				<div className="text-xs text-muted-foreground">
-					{amount === null ? "Full claim" : "Partial claim"}
+					{amount === null ? m.claims_fullClaim() : m.claims_partialAmount()}
 				</div>
 			</CardContent>
 
@@ -115,7 +119,7 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 						className="inline-flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
 					>
 						<ExternalLink className="size-3.5" />
-						View product
+						{m.common_viewProduct()}
 					</a>
 				) : (
 					<span />
@@ -128,7 +132,7 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 					className="gap-1.5"
 				>
 					<Unlock className="size-4" />
-					{isPending ? "Releasing..." : "Release"}
+					{isPending ? m.claims_releasing() : m.claims_release()}
 				</Button>
 			</CardFooter>
 		</Card>
@@ -141,9 +145,9 @@ function EmptyClaimsState() {
 			<div className="mb-4 rounded-full bg-muted p-3">
 				<Package className="size-6 text-muted-foreground" />
 			</div>
-			<h3 className="mb-1 text-lg font-medium">No active claims</h3>
+			<h3 className="mb-1 text-lg font-medium">{m.shared_noActiveClaims()}</h3>
 			<p className="text-sm text-muted-foreground">
-				Items you claim from friends will appear here.
+				{m.shared_noActiveClaimsDescription()}
 			</p>
 		</div>
 	);
@@ -155,7 +159,7 @@ export function MyClaimsSection() {
 	if (isLoading) {
 		return (
 			<section className="mb-8">
-				<h2 className="mb-4 text-xl font-semibold">My Claims</h2>
+				<h2 className="mb-4 text-xl font-semibold">{m.claims_myClaimsTitle()}</h2>
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{[1, 2, 3].map((i) => (
 						<Card key={i} className="animate-pulse">
@@ -181,7 +185,7 @@ export function MyClaimsSection() {
 	return (
 		<section className="mb-8">
 			<h2 className="mb-4 text-xl font-semibold">
-				My Claims ({claims.length})
+				{m.shared_myClaims({ count: claims.length })}
 			</h2>
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{claims.map((claim) => (

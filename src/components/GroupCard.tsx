@@ -9,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import * as m from "@/paraglide/messages";
 
 interface GroupCardProps {
 	group: GroupResponse;
@@ -38,10 +39,10 @@ export function GroupCard({ group, onEdit, onDelete }: GroupCardProps) {
 
 				<CardContent className="py-0">
 					<p className="text-xs text-muted-foreground">
-						Created{" "}
+						{m.groups_created()}{" "}
 						{group.createdAt
 							? new Date(group.createdAt).toLocaleDateString()
-							: "recently"}
+							: m.groups_createdRecently()}
 					</p>
 				</CardContent>
 			</a>
@@ -56,7 +57,7 @@ export function GroupCard({ group, onEdit, onDelete }: GroupCardProps) {
 							e.preventDefault();
 							onEdit(group);
 						}}
-						aria-label={`Edit ${group.name}`}
+						aria-label={m.groups_editAriaLabel({ name: group.name })}
 					>
 						<Pencil className="size-4" />
 					</Button>
@@ -68,7 +69,7 @@ export function GroupCard({ group, onEdit, onDelete }: GroupCardProps) {
 							e.preventDefault();
 							onDelete(group);
 						}}
-						aria-label={`Delete ${group.name}`}
+						aria-label={m.groups_deleteAriaLabel({ name: group.name })}
 					>
 						<Trash2 className="size-4" />
 					</Button>

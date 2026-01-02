@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { PartialClaimDialog } from "@/components/PartialClaimDialog";
 import { useCreateClaim, useReleaseClaim } from "@/hooks/useClaims";
 import type { ClaimWithUserResponse } from "@/db/types";
-import { cn, formatPrice, isExpiringSoon } from "@/lib/utils";
+import { cn, isExpiringSoon } from "@/lib/utils";
+import { formatPrice } from "@/i18n/formatting";
+import { getLocale } from "@/paraglide/runtime";
+import * as m from "@/paraglide/messages";
 
 interface ClaimButtonProps {
 	itemId: string;
@@ -85,6 +88,7 @@ export function ClaimButton({
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const createClaim = useCreateClaim();
 	const releaseClaim = useReleaseClaim();
+	const locale = getLocale();
 
 	const claimState = getClaimState(
 		claims,
@@ -153,7 +157,7 @@ export function ClaimButton({
 						) : (
 							<Lock className="size-3.5" />
 						)}
-						Claim
+						{m.claims_claim()}
 					</Button>
 					{partialClaimDialog}
 				</>
@@ -174,7 +178,9 @@ export function ClaimButton({
 						) : (
 							<Lock className="size-3.5" />
 						)}
-						Claim{claimableAmount !== null && ` ${formatPrice(claimableAmount)}`}
+						{claimableAmount !== null
+							? m.claims_claimAmount({ amount: formatPrice(claimableAmount, locale) })
+							: m.claims_claim()}
 					</Button>
 					{partialClaimDialog}
 				</>
@@ -194,7 +200,7 @@ export function ClaimButton({
 					) : (
 						<Unlock className="size-3.5" />
 					)}
-					Release Claim
+					{m.claims_releaseClaim()}
 				</Button>
 			);
 
@@ -209,7 +215,9 @@ export function ClaimButton({
 					)}
 				>
 					<Check className="size-3" />
-					Claimed{claimer?.user.name ? ` by ${claimer.user.name}` : ""}
+					{claimer?.user.name
+						? m.claims_claimedBy({ name: claimer.user.name })
+						: m.claims_fullyClaimedByOther()}
 				</Badge>
 			);
 		}
@@ -234,7 +242,7 @@ export function ClaimButton({
 						) : (
 							<>
 								<AlertTriangle className="size-3.5" />
-								Expiring Soon
+								{m.claims_expiringSoon()}
 							</>
 						)}
 					</Button>
