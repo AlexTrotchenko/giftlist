@@ -8,6 +8,7 @@ import { Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InvitationsDropdown } from "@/components/InvitationsDropdown";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 export function Header() {
 	return (
@@ -40,6 +41,7 @@ export function Header() {
 				</nav>
 
 				<div className="ml-auto flex items-center gap-4">
+					<ThemeSwitcher />
 					<SignedOut>
 						<SignInButton mode="modal">
 							<Button variant="default" size="sm">

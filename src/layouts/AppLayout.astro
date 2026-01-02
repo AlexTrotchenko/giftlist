@@ -10,13 +10,25 @@ const { title = "GiftList" } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
+		<script is:inline>
+			(function () {
+				const theme = localStorage.getItem("theme-variant");
+				const mode = localStorage.getItem("color-mode") || "dark";
+				if (theme && theme !== "default") {
+					document.documentElement.classList.add("theme-" + theme);
+				}
+				// Apply saved mode (or default to dark)
+				document.documentElement.classList.remove("dark", "light");
+				document.documentElement.classList.add(mode);
+			})();
+		</script>
 	</head>
 	<body class="min-h-screen bg-background font-sans antialiased">
 		<div class="relative flex min-h-screen flex-col">
