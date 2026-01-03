@@ -104,7 +104,7 @@ function NotificationList() {
 				>
 					<Bell className="size-5" />
 					{!isLoadingCount && unreadCount > 0 && (
-						<span className="-top-1 -right-1 absolute flex size-5 items-center justify-center rounded-full bg-destructive font-medium text-destructive-foreground text-xs">
+						<span className="-top-1 -right-1 absolute flex size-5 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-xs">
 							{unreadCount > 99 ? "99+" : unreadCount}
 						</span>
 					)}

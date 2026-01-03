@@ -1,5 +1,5 @@
 import type { APIContext } from "astro";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { groupMembers, groups, users } from "@/db/schema";
 import type { GroupResponse } from "@/db/types";
@@ -38,26 +38,12 @@ export async function GET(context: APIContext) {
 		});
 	}
 
-	// Get groups where user is owner OR is a member
-	const memberships = await db
-		.select({ groupId: groupMembers.groupId })
-		.from(groupMembers)
-		.where(eq(groupMembers.userId, user.id));
-
-	const memberGroupIds = memberships.map((m) => m.groupId);
-
-	// Get all groups where user is owner or member
+	// Get only groups where user is the owner (created by them)
+	// Users should NOT see groups they were invited to
 	const userGroups = await db
 		.select()
 		.from(groups)
-		.where(
-			memberGroupIds.length > 0
-				? or(
-						eq(groups.ownerId, user.id),
-						...memberGroupIds.map((id) => eq(groups.id, id)),
-					)
-				: eq(groups.ownerId, user.id),
-		);
+		.where(eq(groups.ownerId, user.id));
 
 	// Serialize dates to ISO strings for JSON response
 	const responseData: GroupResponse[] = userGroups.map((g) => ({

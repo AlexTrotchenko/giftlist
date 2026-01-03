@@ -1,5 +1,5 @@
 ---
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { GroupsPage } from "@/components/GroupsPage";
 import { groupMembers, groups, users } from "@/db/schema";
 import AppLayout from "@/layouts/AppLayout.astro";
@@ -38,26 +38,12 @@ if (!user) {
 	user = newUser;
 }
 
-// Get groups where user is a member
-const memberships = await db
-	.select({ groupId: groupMembers.groupId })
-	.from(groupMembers)
-	.where(eq(groupMembers.userId, user.id));
-
-const memberGroupIds = memberships.map((m) => m.groupId);
-
-// Get all groups where user is owner or member
+// Get only groups where user is the owner (created by them)
+// Users should NOT see groups they were invited to
 const userGroups = await db
 	.select()
 	.from(groups)
-	.where(
-		memberGroupIds.length > 0
-			? or(
-					eq(groups.ownerId, user.id),
-					...memberGroupIds.map((id) => eq(groups.id, id)),
-				)
-			: eq(groups.ownerId, user.id),
-	);
+	.where(eq(groups.ownerId, user.id));
 
 // Serialize dates to ISO strings for React hydration
 const serializedGroups = userGroups.map((group) => ({

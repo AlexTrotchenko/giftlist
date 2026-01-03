@@ -48,8 +48,27 @@ function EmptyState({ onAddItem, onQuickAdd }: { onAddItem: () => void; onQuickA
 	);
 }
 
+function LoadingSkeleton() {
+	return (
+		<div className="container mx-auto max-w-screen-xl px-4 py-8">
+			<div className="mb-6 flex items-center justify-between">
+				<div className="h-8 w-32 animate-pulse rounded bg-muted" />
+				<div className="flex gap-2">
+					<div className="h-9 w-24 animate-pulse rounded bg-muted" />
+					<div className="h-9 w-24 animate-pulse rounded bg-muted" />
+				</div>
+			</div>
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{[1, 2, 3].map((i) => (
+					<div key={i} className="h-48 animate-pulse rounded-lg bg-muted" />
+				))}
+			</div>
+		</div>
+	);
+}
+
 function WishlistContent({ initialItems }: { initialItems: Item[] }) {
-	const { data: items = [] } = useItems(initialItems);
+	const { data: items = [], isLoading } = useItems(initialItems);
 	const deleteItem = useDeleteItem();
 
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -87,6 +106,10 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 			setExtractedData(null);
 		}
 	};
+
+	if (isLoading && !initialItems.length) {
+		return <LoadingSkeleton />;
+	}
 
 	if (items.length === 0) {
 		return (
