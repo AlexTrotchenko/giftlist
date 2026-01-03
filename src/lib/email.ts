@@ -49,8 +49,8 @@ export interface EmailClient {
 
 // Use Resend's test address for dev, verified domain for production
 const DEFAULT_FROM = import.meta.env.PROD
-	? "Giftlist <noreply@giftlist.app>"
-	: "Giftlist <onboarding@resend.dev>";
+	? "Goodieslist <noreply@goodieslist.com>"
+	: "Goodieslist <onboarding@resend.dev>";
 
 /**
  * Creates an email client configured with the Resend API key.
