@@ -11,18 +11,33 @@ interface SharePageProps {
 
 function extractFirstUrl(text?: string): string | undefined {
 	if (!text) return undefined;
-	const urlRegex = /(https?:\/\/[^\s]+)/;
+	// Match URLs including those with special chars
+	const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/gi;
 	const match = text.match(urlRegex);
-	return match?.[1];
+	return match?.[0];
+}
+
+function extractDescriptionWithoutUrl(text?: string): string {
+	if (!text) return "";
+	// Remove URLs from text to get clean description
+	const withoutUrls = text.replace(/(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/gi, "").trim();
+	// Get first line and clean up
+	const firstLine = withoutUrls.split("\n")[0].trim();
+	// Remove common share prefixes
+	return firstLine
+		.replace(/^(check out|look at|see|found|sharing):?\s*/i, "")
+		.replace(/[!]+$/, "")
+		.trim();
 }
 
 export function SharePage({ url, title, text, isIOS }: SharePageProps) {
 	const [dialogOpen, setDialogOpen] = useState(true);
 
-	// Extract first valid URL from text param if url not provided
+	// Extract URL: prefer explicit url param, then extract from text
 	const shareUrl = url || extractFirstUrl(text);
 	const shareTitle = title;
-	const shareDescription = text && !text.startsWith("http") ? text.split("\n")[0] : "";
+	// Get description without the URL in it
+	const shareDescription = extractDescriptionWithoutUrl(text);
 
 	if (isIOS) {
 		return (
