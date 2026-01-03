@@ -1,9 +1,16 @@
 ---
 /**
- * PWA Share Target handler - redirects to localized share page
+ * PWA Share Target handler - renders share page directly (no redirect)
  * This page exists at /share to handle the manifest share_target action
+ * Must NOT redirect to avoid loops with i18n routing
  */
+import { SharePage } from "@/components/SharePage";
+import AppLayout from "@/layouts/AppLayout.astro";
+import { getAuthAdapter } from "@/lib/auth";
 import { localizeHref } from "@/paraglide/runtime";
+
+const auth = getAuthAdapter(Astro.locals.runtime.env);
+const authUser = await auth.getCurrentUser(Astro.request, Astro.locals);
 
 // Get share parameters from query string
 const url = new URL(Astro.request.url);
@@ -11,15 +18,28 @@ const shareUrl = url.searchParams.get("url");
 const shareTitle = url.searchParams.get("title");
 const shareText = url.searchParams.get("text");
 
-// Build query string for redirect
-const params = new URLSearchParams();
-if (shareUrl) params.set("url", shareUrl);
-if (shareTitle) params.set("title", shareTitle);
-if (shareText) params.set("text", shareText);
+// Detect iOS - Web Share Target not supported
+const userAgent = Astro.request.headers.get("user-agent") || "";
+const isIOS = /iPhone|iPad|iPod/.test(userAgent);
 
-const queryString = params.toString();
-const redirectPath = queryString ? `/share?${queryString}` : "/share";
-
-// Redirect to localized share page with params preserved
-return Astro.redirect(localizeHref(redirectPath));
+// If not authenticated, redirect to sign-in with return URL
+if (!authUser) {
+	const shareParams = new URLSearchParams({
+		...(shareUrl && { url: shareUrl }),
+		...(shareTitle && { title: shareTitle }),
+		...(shareText && { text: shareText }),
+	});
+	const returnUrl = `/share?${shareParams.toString()}`;
+	return Astro.redirect(localizeHref(`/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`));
+}
 ---
+
+<AppLayout title="Share with Goodieslist" locale="en">
+	<SharePage
+		client:load
+		url={shareUrl || undefined}
+		title={shareTitle || undefined}
+		text={shareText || undefined}
+		isIOS={isIOS}
+	/>
+</AppLayout>
