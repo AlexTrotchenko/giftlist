@@ -1,6 +1,7 @@
 ---
 import AppLayout from "@/layouts/AppLayout.astro";
-import { getLocale, isLocale, baseLocale } from "@/paraglide/runtime";
+import { getLocale, isLocale } from "@/paraglide/runtime";
+import * as m from "@/paraglide/messages";
 
 // Extract locale from URL path
 const pathSegments = Astro.url.pathname.split("/").filter(Boolean);
@@ -15,13 +16,13 @@ if (firstSegment && !isLocale(firstSegment) && firstSegment !== "") {
 const locale = getLocale();
 ---
 
-<AppLayout title="GiftList - Share Your Wishlists" locale={locale}>
+<AppLayout title={`${m.common_appName()} - ${m.landing_heroTitle()}`} locale={locale}>
 	<div class="container mx-auto flex flex-col items-center justify-center px-4 py-24 text-center">
 		<h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
-			Share Your Wishlists
+			{m.landing_heroTitle()}
 		</h1>
 		<p class="mt-4 max-w-lg text-lg text-muted-foreground">
-			Create and share wishlists with friends and family. Never get duplicate gifts again.
+			{m.landing_heroDescription()}
 		</p>
 	</div>
 </AppLayout>
