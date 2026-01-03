@@ -17,27 +17,67 @@ function extractFirstUrl(text?: string): string | undefined {
 	return match?.[0];
 }
 
-function extractDescriptionWithoutUrl(text?: string): string {
-	if (!text) return "";
-	// Remove URLs from text to get clean description
-	const withoutUrls = text.replace(/(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/gi, "").trim();
-	// Get first line and clean up
-	const firstLine = withoutUrls.split("\n")[0].trim();
-	// Remove common share prefixes
-	return firstLine
-		.replace(/^(check out|look at|see|found|sharing):?\s*/i, "")
+interface ParsedShareData {
+	url?: string;
+	name?: string;
+	price?: string;
+	notes?: string;
+}
+
+function parseShareText(text?: string): ParsedShareData {
+	if (!text) return {};
+
+	const result: ParsedShareData = {};
+
+	// Extract URL
+	const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/gi;
+	const urlMatch = text.match(urlRegex);
+	if (urlMatch) {
+		result.url = urlMatch[0];
+	}
+
+	// Remove URL from text
+	const withoutUrl = text.replace(urlRegex, "").trim();
+
+	// Try to extract price (supports $, €, £, C$, etc.)
+	const priceRegex = /([A-Z]{0,2}\$|€|£|¥)\s*(\d+[.,]\d{2})/i;
+	const priceMatch = withoutUrl.match(priceRegex);
+	if (priceMatch) {
+		// Convert to just the number for the price field
+		result.price = priceMatch[2].replace(",", ".");
+	}
+
+	// Get product name - text after price separator or first line
+	let nameText = withoutUrl;
+
+	// Remove price from text
+	nameText = nameText.replace(priceRegex, "").trim();
+
+	// Remove common separators and prefixes
+	nameText = nameText
+		.replace(/^\|+\s*/, "") // Remove leading |
+		.replace(/^(check out|look at|see|found|sharing|i just found this on \w+):?\s*/i, "")
 		.replace(/[!]+$/, "")
+		.split("\n")[0] // Get first line
 		.trim();
+
+	if (nameText) {
+		result.name = nameText;
+	}
+
+	return result;
 }
 
 export function SharePage({ url, title, text, isIOS }: SharePageProps) {
 	const [dialogOpen, setDialogOpen] = useState(true);
 
-	// Extract URL: prefer explicit url param, then extract from text
-	const shareUrl = url || extractFirstUrl(text);
-	const shareTitle = title;
-	// Get description without the URL in it
-	const shareDescription = extractDescriptionWithoutUrl(text);
+	// Parse shared text for URL, name, price
+	const parsed = parseShareText(text);
+
+	// Use explicit params first, fall back to parsed values
+	const shareUrl = url || parsed.url;
+	const shareName = title || parsed.name || "";
+	const sharePrice = parsed.price || "";
 
 	if (isIOS) {
 		return (
@@ -66,8 +106,8 @@ export function SharePage({ url, title, text, isIOS }: SharePageProps) {
 				item={null}
 				defaultValues={{
 					url: shareUrl || "",
-					name: shareTitle || "",
-					notes: shareDescription || "",
+					name: shareName,
+					price: sharePrice,
 				}}
 			/>
 		</div>
