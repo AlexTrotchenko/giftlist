@@ -1,0 +1,25 @@
+---
+/**
+ * PWA Share Target handler - redirects to localized share page
+ * This page exists at /share to handle the manifest share_target action
+ */
+import { localizeHref } from "@/paraglide/runtime";
+
+// Get share parameters from query string
+const url = new URL(Astro.request.url);
+const shareUrl = url.searchParams.get("url");
+const shareTitle = url.searchParams.get("title");
+const shareText = url.searchParams.get("text");
+
+// Build query string for redirect
+const params = new URLSearchParams();
+if (shareUrl) params.set("url", shareUrl);
+if (shareTitle) params.set("title", shareTitle);
+if (shareText) params.set("text", shareText);
+
+const queryString = params.toString();
+const redirectPath = queryString ? `/share?${queryString}` : "/share";
+
+// Redirect to localized share page with params preserved
+return Astro.redirect(localizeHref(redirectPath));
+---
