@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { QuickAddForm } from "./QuickAddForm";
+import { ItemFormDialog } from "./ItemFormDialog";
 import * as m from "@/paraglide/messages";
 
 interface SharePageProps {
@@ -22,7 +22,7 @@ export function SharePage({ url, title, text, isIOS }: SharePageProps) {
 	// Extract first valid URL from text param if url not provided
 	const shareUrl = url || extractFirstUrl(text);
 	const shareTitle = title;
-	const shareDescription = text ? text.split("\n")[0] : "";
+	const shareDescription = text && !text.startsWith("http") ? text.split("\n")[0] : "";
 
 	if (isIOS) {
 		return (
@@ -35,18 +35,25 @@ export function SharePage({ url, title, text, isIOS }: SharePageProps) {
 		);
 	}
 
+	const handleOpenChange = (open: boolean) => {
+		setDialogOpen(open);
+		if (!open) {
+			// Redirect to wishlist when dialog closes
+			window.location.href = "/wishlist";
+		}
+	};
+
 	return (
 		<div className="flex items-center justify-center min-h-screen">
-			<QuickAddForm
+			<ItemFormDialog
 				open={dialogOpen}
-				onOpenChange={setDialogOpen}
-				onSuccess={() => {
-					// Redirect to wishlist after successful save
-					window.location.href = "/wishlist";
+				onOpenChange={handleOpenChange}
+				item={null}
+				defaultValues={{
+					url: shareUrl || "",
+					name: shareTitle || "",
+					notes: shareDescription || "",
 				}}
-				prefillUrl={shareUrl}
-				prefillTitle={shareTitle}
-				prefillDescription={shareDescription}
 			/>
 		</div>
 	);
