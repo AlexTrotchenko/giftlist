@@ -50,7 +50,9 @@ npm run cf-typegen   # Regenerate Cloudflare Worker type definitions
 - Custom keyframes in global.css: `shake`, `ring`, `check-bounce`, `badge-pulse`
 - Toasts: Use Sonner via `toast.success()`, `toast.error()`, `toast.promise()`
 - Timing: 83-250ms enter, 50-100ms exit, target 60fps
-- Only use Motion/Framer Motion for list enter/exit animations (AnimatePresence)
+- Motion/Framer Motion with LazyMotion for list animations only
+- Use `<AnimatedList>` wrapper for staggered list enter/exit
+- Animate UI components in `src/components/animate-ui/`
 
 **Path Aliases:** `@/*` resolves to `src/*`
 
