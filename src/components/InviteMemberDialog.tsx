@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -20,6 +21,7 @@ import {
 import { useInviteMember } from "@/hooks/useGroups";
 import { createInvitationSchema } from "@/lib/validations/invitation";
 import { resolveValidationMessage } from "@/i18n/zod-messages";
+import { cn } from "@/lib/utils";
 import * as m from "@/paraglide/messages";
 
 interface InviteMemberDialogProps {
@@ -81,12 +83,16 @@ export function InviteMemberDialog({
 
 		if (!validateForm()) return;
 
-		try {
+		const sendInvitation = async () => {
 			await inviteMember.mutateAsync(formData);
 			onOpenChange(false);
-		} catch {
-			// Error is handled by mutation state
-		}
+		};
+
+		toast.promise(sendInvitation(), {
+			loading: m.common_sending(),
+			success: m.invitations_sendSuccess(),
+			error: (err) => err.message || m.errors_failedToSave(),
+		});
 	};
 
 	const isLoading = inviteMember.isPending;
@@ -117,6 +123,7 @@ export function InviteMemberDialog({
 								}
 								placeholder={m.invitations_emailPlaceholder()}
 								aria-invalid={!!errors.email}
+								className={cn(errors.email && "motion-safe:animate-shake")}
 							/>
 							{errors.email && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.email)}</p>

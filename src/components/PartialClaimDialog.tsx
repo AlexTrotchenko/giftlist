@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,8 +78,14 @@ export function PartialClaimDialog({
 			createClaim.mutate(
 				{ itemId, amount: null },
 				{
-					onSuccess: () => onOpenChange(false),
-					onError: (err) => setError(err.message),
+					onSuccess: () => {
+						toast.success(m.claims_claimSuccess());
+						onOpenChange(false);
+					},
+					onError: (err) => {
+						setError(err.message);
+						toast.error(err.message);
+					},
 				},
 			);
 			return;
@@ -102,8 +109,14 @@ export function PartialClaimDialog({
 		createClaim.mutate(
 			{ itemId, amount: amountCents },
 			{
-				onSuccess: () => onOpenChange(false),
-				onError: (err) => setError(err.message),
+				onSuccess: () => {
+					toast.success(m.claims_claimSuccess());
+					onOpenChange(false);
+				},
+				onError: (err) => {
+					setError(err.message);
+					toast.error(err.message);
+				},
 			},
 		);
 	};

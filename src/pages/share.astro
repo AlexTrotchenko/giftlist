@@ -35,6 +35,35 @@ if (!authUser) {
 ---
 
 <AppLayout title="Share with Goodieslist" locale="en">
+	<!-- Loading skeleton shown while React hydrates -->
+	<div id="share-loading" class="flex items-center justify-center min-h-screen">
+		<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+			<div class="bg-card border rounded-lg shadow-lg w-full max-w-md mx-4 p-6">
+				<!-- Skeleton header -->
+				<div class="flex items-center justify-between mb-4">
+					<div class="h-6 w-32 bg-muted animate-pulse rounded"></div>
+					<div class="h-6 w-6 bg-muted animate-pulse rounded"></div>
+				</div>
+				<!-- Skeleton form fields -->
+				<div class="space-y-4">
+					<div>
+						<div class="h-4 w-16 bg-muted animate-pulse rounded mb-2"></div>
+						<div class="h-10 bg-muted animate-pulse rounded"></div>
+					</div>
+					<div>
+						<div class="h-4 w-12 bg-muted animate-pulse rounded mb-2"></div>
+						<div class="h-10 bg-muted animate-pulse rounded"></div>
+					</div>
+					<div>
+						<div class="h-4 w-14 bg-muted animate-pulse rounded mb-2"></div>
+						<div class="h-10 bg-muted animate-pulse rounded"></div>
+					</div>
+					<!-- Skeleton button -->
+					<div class="h-10 bg-muted animate-pulse rounded mt-6"></div>
+				</div>
+			</div>
+		</div>
+	</div>
 	<SharePage
 		client:load
 		url={shareUrl || undefined}
@@ -42,4 +71,20 @@ if (!authUser) {
 		text={shareText || undefined}
 		isIOS={isIOS}
 	/>
+	<script is:inline>
+		// Hide loading skeleton once React hydrates
+		document.addEventListener('DOMContentLoaded', function() {
+			// Check if dialog is already rendered
+			const checkReady = () => {
+				const dialog = document.querySelector('[role="dialog"]');
+				const loading = document.getElementById('share-loading');
+				if (dialog && loading) {
+					loading.style.display = 'none';
+				} else {
+					requestAnimationFrame(checkReady);
+				}
+			};
+			checkReady();
+		});
+	</script>
 </AppLayout>

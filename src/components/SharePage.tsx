@@ -1,6 +1,16 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { ItemFormDialog } from "./ItemFormDialog";
 import * as m from "@/paraglide/messages";
+
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			staleTime: 1000 * 60 * 5,
+			refetchOnWindowFocus: false,
+		},
+	},
+});
 
 interface SharePageProps {
 	url?: string;
@@ -99,17 +109,19 @@ export function SharePage({ url, title, text, isIOS }: SharePageProps) {
 	};
 
 	return (
-		<div className="flex items-center justify-center min-h-screen">
-			<ItemFormDialog
-				open={dialogOpen}
-				onOpenChange={handleOpenChange}
-				item={null}
-				defaultValues={{
-					url: shareUrl || "",
-					name: shareName,
-					price: sharePrice,
-				}}
-			/>
-		</div>
+		<QueryClientProvider client={queryClient}>
+			<div className="flex items-center justify-center min-h-screen">
+				<ItemFormDialog
+					open={dialogOpen}
+					onOpenChange={handleOpenChange}
+					item={null}
+					defaultValues={{
+						url: shareUrl || "",
+						name: shareName,
+						price: sharePrice,
+					}}
+				/>
+			</div>
+		</QueryClientProvider>
 	);
 }

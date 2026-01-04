@@ -13,6 +13,7 @@ import {
 	X,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -241,16 +242,26 @@ function GroupDetailContent({
 			: m.groups_removeConfirm({ name: member?.user.name ?? member?.user.email ?? "" });
 
 		if (window.confirm(message)) {
-			await removeMember.mutateAsync(userId);
-			if (isCurrentUser) {
-				window.location.href = "/groups";
+			try {
+				await removeMember.mutateAsync(userId);
+				toast.success(m.members_removeSuccess());
+				if (isCurrentUser) {
+					window.location.href = "/groups";
+				}
+			} catch (err) {
+				toast.error(err instanceof Error ? err.message : m.errors_genericError());
 			}
 		}
 	};
 
 	const handleCancelInvitation = async (invitationId: string) => {
 		if (window.confirm(m.invitations_cancelInvitation())) {
-			await cancelInvitation.mutateAsync(invitationId);
+			try {
+				await cancelInvitation.mutateAsync(invitationId);
+				toast.success(m.invitations_cancelSuccess());
+			} catch (err) {
+				toast.error(err instanceof Error ? err.message : m.errors_genericError());
+			}
 		}
 	};
 
