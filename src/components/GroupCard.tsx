@@ -38,7 +38,7 @@ export function GroupCard({ group, onEdit, onDelete }: GroupCardProps) {
 				</CardHeader>
 
 				<CardContent className="py-0">
-					<p className="text-xs text-muted-foreground">
+					<p className="text-xs text-muted-foreground" suppressHydrationWarning>
 						{m.groups_created()}{" "}
 						{group.createdAt
 							? new Date(group.createdAt).toLocaleDateString()
