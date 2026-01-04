@@ -10,8 +10,9 @@ import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 type Theme = "light" | "dark"
 
-function useTheme(): Theme {
-  const [theme, setTheme] = useState<Theme>("dark")
+function useTheme(): Theme | null {
+  // Start with null to avoid hydration mismatch (server doesn't know localStorage)
+  const [theme, setTheme] = useState<Theme | null>(null)
 
   useEffect(() => {
     // Initial theme from localStorage or default to dark
@@ -38,9 +39,12 @@ function useTheme(): Theme {
 const Toaster = ({ ...props }: ToasterProps) => {
   const theme = useTheme()
 
+  // Don't render until we know the theme (prevents hydration mismatch)
+  if (theme === null) return null
+
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

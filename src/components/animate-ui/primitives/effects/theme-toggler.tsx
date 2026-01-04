@@ -129,6 +129,22 @@ function ThemeToggler({
 		[onImmediateChange, resolvedTheme, fromClip, toClip, setTheme],
 	);
 
+	// Inject view-transition styles dynamically to avoid SSR hydration mismatch
+	React.useEffect(() => {
+		const styleId = "theme-toggler-view-transition";
+		if (document.getElementById(styleId)) return;
+
+		const style = document.createElement("style");
+		style.id = styleId;
+		style.textContent = `::view-transition-old(root), ::view-transition-new(root){animation:none;mix-blend-mode:normal;}`;
+		document.head.appendChild(style);
+
+		return () => {
+			const existing = document.getElementById(styleId);
+			if (existing) existing.remove();
+		};
+	}, []);
+
 	return (
 		<React.Fragment>
 			{typeof children === "function"
@@ -138,7 +154,6 @@ function ThemeToggler({
 						toggleTheme,
 					})
 				: children}
-			<style>{`::view-transition-old(root), ::view-transition-new(root){animation:none;mix-blend-mode:normal;}`}</style>
 		</React.Fragment>
 	);
 }
