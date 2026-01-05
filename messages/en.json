@@ -221,6 +221,33 @@
   "landing_feature3Title": "Claim Items",
   "landing_feature3Description": "Reserve items so others know what's being purchased. Avoid duplicate gifts.",
 
+  "landing_howItWorksTitle": "How It Works",
+  "landing_step1Title": "Create Your Wishlist",
+  "landing_step1Description": "Add items you want with prices, links, and notes. It takes seconds.",
+  "landing_step2Title": "Join or Create Groups",
+  "landing_step2Description": "Organize with family, friends, or coworkers. Share your list with the right people.",
+  "landing_step3Title": "Coordinate Without Spoilers",
+  "landing_step3Description": "Others claim items secretly. You get what you want without duplicate gifts.",
+
+  "landing_featuresTitle": "Everything You Need",
+
+  "landing_faqTitle": "Frequently Asked Questions",
+  "landing_faq1Question": "Is GiftList free to use?",
+  "landing_faq1Answer": "Yes! GiftList is completely free. Create unlimited wishlists, join unlimited groups, and invite as many people as you want.",
+  "landing_faq2Question": "Can the wishlist owner see who claimed their items?",
+  "landing_faq2Answer": "No! Claims are completely hidden from the wishlist owner. Only other group members can see claims to avoid duplicates.",
+  "landing_faq3Question": "What happens if someone else already claimed an item?",
+  "landing_faq3Answer": "You'll see that it's been claimed and can choose a different item. For expensive items, you can contribute a partial amount.",
+  "landing_faq4Question": "Can I share different items with different groups?",
+  "landing_faq4Answer": "Absolutely! Each item can be shared with specific groups. Share work-appropriate gifts with coworkers and personal items with family.",
+  "landing_faq5Question": "Do I need to create an account?",
+  "landing_faq5Answer": "Yes, a free account is required to create wishlists and join groups. This keeps your lists secure and synced across devices.",
+
+  "landing_ctaTitle": "Ready to Start Your Wishlist?",
+  "landing_ctaDescription": "Join thousands of families and friends who use GiftList to coordinate gift-giving.",
+
+  "landing_footerCopyright": "© 2025 GiftList. All rights reserved.",
+
   "item_addSuccess": "Item added successfully",
   "item_updateSuccess": "Item updated",
   "item_deleteSuccess": "Item deleted",
