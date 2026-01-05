@@ -120,6 +120,10 @@
   "notifications_markAllRead": "Mark all read",
   "notifications_unreadCount": "{count} unread notifications",
 
+  "notificationCenter_title": "Notifications",
+  "notificationCenter_empty": "You're all caught up!",
+  "notificationCenter_ariaLabel": "{count} notifications and invitations",
+
   "invitations_title": "Group Invitations",
   "invitations_empty": "No pending invitations",
   "invitations_pendingCount": "{count} pending invitations",

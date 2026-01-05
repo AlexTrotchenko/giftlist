@@ -120,6 +120,10 @@
   "notifications_markAllRead": "Позначити все прочитаним",
   "notifications_unreadCount": "{count} непрочитаних сповіщень",
 
+  "notificationCenter_title": "Сповіщення",
+  "notificationCenter_empty": "Все переглянуто!",
+  "notificationCenter_ariaLabel": "{count} сповіщень та запрошень",
+
   "invitations_title": "Запрошення до груп",
   "invitations_empty": "Немає очікуваних запрошень",
   "invitations_pendingCount": "{count} очікуваних запрошень",
