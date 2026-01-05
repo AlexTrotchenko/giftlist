@@ -15,8 +15,7 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet";
-import { InvitationsDropdown } from "@/components/InvitationsDropdown";
-import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import * as m from "@/paraglide/messages";
@@ -95,8 +94,7 @@ export function Header({ locale, currentPath }: HeaderProps) {
 					</SignedOut>
 
 					<SignedIn>
-						<InvitationsDropdown locale={locale ?? "en"} />
-						<NotificationBell locale={locale ?? "en"} />
+						<NotificationCenter locale={locale ?? "en"} />
 						{/* Desktop User Avatar (hidden on mobile) */}
 						<div className="hidden md:block">
 							<UserButton
