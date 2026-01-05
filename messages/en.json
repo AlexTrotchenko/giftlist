@@ -276,5 +276,13 @@
 
   "priority_label": "Priority",
   "priority_ratingGroup": "Priority rating",
-  "priority_starLabel": "{count} stars"
+  "priority_starLabel": "{count} stars",
+
+  "wizard_step": "Step {current} of {total}",
+  "wizard_stepLabel": "Step {number}: {name}",
+  "wizard_next": "Next",
+  "wizard_previous": "Back",
+  "wizard_stepBasicInfo": "Basic Info",
+  "wizard_stepDetails": "Details",
+  "wizard_stepRecipients": "Recipients"
 }
