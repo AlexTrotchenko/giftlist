@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Check, ChevronsUpDown, Users, X } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Plus, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import type { GroupResponse } from "@/db/types";
+import * as m from "@/paraglide/messages";
 
 interface RecipientsPickerProps {
 	groups: GroupResponse[];
 	selectedGroupIds: string[];
 	onSelectedChange: (groupIds: string[]) => void;
+	onCreateGroup?: (name: string) => Promise<GroupResponse>;
+	isCreatingGroup?: boolean;
 	disabled?: boolean;
 }
 
@@ -29,6 +32,8 @@ export function RecipientsPicker({
 	groups,
 	selectedGroupIds,
 	onSelectedChange,
+	onCreateGroup,
+	isCreatingGroup = false,
 	disabled = false,
 }: RecipientsPickerProps) {
 	const [open, setOpen] = useState(false);
@@ -40,6 +45,24 @@ export function RecipientsPicker({
 			group.name.toLowerCase().includes(lowerSearch),
 		);
 	}, [groups, search]);
+
+	// Check if search term matches an existing group name exactly
+	const exactMatch = useMemo(() => {
+		const lowerSearch = search.toLowerCase().trim();
+		return groups.some((group) => group.name.toLowerCase() === lowerSearch);
+	}, [groups, search]);
+
+	// Show create option when search has content and doesn't match existing group
+	const showCreateOption = onCreateGroup && search.trim().length > 0 && !exactMatch;
+
+	const handleCreateGroup = async () => {
+		if (!onCreateGroup || !search.trim()) return;
+
+		const newGroup = await onCreateGroup(search.trim());
+		// Auto-select the newly created group
+		onSelectedChange([...selectedGroupIds, newGroup.id]);
+		setSearch("");
+	};
 
 	const selectedGroups = useMemo(() => {
 		return groups.filter((g) => selectedGroupIds.includes(g.id));
@@ -86,14 +109,34 @@ export function RecipientsPicker({
 				>
 					<Command>
 						<CommandInput
-							placeholder="Search groups..."
+							placeholder={m.recipients_searchPlaceholder()}
 							value={search}
 							onValueChange={setSearch}
 						/>
 						<CommandList>
-							<CommandEmpty>No groups found.</CommandEmpty>
+							{!showCreateOption && filteredGroups.length === 0 && (
+								<CommandEmpty>{m.recipients_noGroupsFound()}</CommandEmpty>
+							)}
+							{showCreateOption && (
+								<CommandGroup>
+									<CommandItem
+										onSelect={handleCreateGroup}
+										disabled={isCreatingGroup}
+										className="text-primary"
+									>
+										{isCreatingGroup ? (
+											<Loader2 className="mr-2 size-4 animate-spin" />
+										) : (
+											<Plus className="mr-2 size-4" />
+										)}
+										<span>
+											{m.recipients_createGroup({ name: search.trim() })}
+										</span>
+									</CommandItem>
+								</CommandGroup>
+							)}
 							{filteredGroups.length > 0 && (
-								<CommandGroup heading="Groups">
+								<CommandGroup heading={m.groups_title()}>
 									{filteredGroups.map((group) => (
 										<CommandItem
 											key={group.id}

@@ -63,6 +63,21 @@ npm run cf-typegen   # Regenerate Cloudflare Worker type definitions
 
 **Path Aliases:** `@/*` resolves to `src/*`
 
+**Mobile Responsiveness (WCAG 2.5.5 Compliant):**
+- Touch targets: Minimum 44×44px (h-11) on mobile, can be smaller on desktop (sm:h-9)
+- Spacing: 8px+ between touch targets to prevent accidental taps
+- Form inputs: h-11 on mobile, sm:h-9 on desktop; py-2 mobile padding
+- Buttons: All sizes increased by ~1 step on mobile (default h-11, sm h-9, lg h-12)
+- Selects: SelectTrigger h-11 on mobile, SelectItem py-3 for touch
+- Dialogs: max-h-[85dvh] with overflow-y-auto; use `dvh` units for iOS Safari
+- Popovers: Use `side`, `sideOffset`, `collisionPadding` to prevent overlap with footers
+- Layout stacking: Use `flex-col gap-3 sm:flex-row` for headers/toolbars
+- Text overflow: Apply `min-w-0`, `truncate`, `flex-wrap` on cards with dynamic content
+- Navigation: Hamburger menu for mobile (Sheet component), desktop nav at md: breakpoint
+- Accessibility: `aria-current="page"` on active nav links, proper focus indicators
+- Confirmations: Use `ConfirmDialog` (AlertDialog wrapper), never `window.confirm()`
+- Toaster: Must always mount (never return null during hydration) to prevent lost toasts
+
 **Types:**
 - Use Drizzle inferred types from `@/db/types`
 - `Item`, `User` - database types (with Date objects)

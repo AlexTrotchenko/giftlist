@@ -284,5 +284,9 @@
   "wizard_previous": "Back",
   "wizard_stepBasicInfo": "Basic Info",
   "wizard_stepDetails": "Details",
-  "wizard_stepRecipients": "Recipients"
+  "wizard_stepRecipients": "Recipients",
+
+  "recipients_searchPlaceholder": "Search groups...",
+  "recipients_noGroupsFound": "No groups found.",
+  "recipients_createGroup": "Create \"{name}\""
 }
