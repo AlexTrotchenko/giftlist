@@ -489,8 +489,8 @@ export function ItemFormDialog({
 						)}
 					</div>
 
-					<DialogFooter className="flex-col gap-2 sm:flex-row">
-						<div className="flex flex-1 gap-2">
+					<DialogFooter className="flex-row justify-between gap-2">
+						<div className="flex gap-2">
 							{currentStep > 0 && (
 								<Button
 									type="button"
@@ -506,7 +506,6 @@ export function ItemFormDialog({
 								variant="outline"
 								onClick={() => onOpenChange(false)}
 								disabled={isLoading}
-								className="sm:ml-auto"
 							>
 								{m.common_cancel()}
 							</Button>
