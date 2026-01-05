@@ -110,6 +110,7 @@ export async function POST(context: APIContext) {
 			price: validatedData.price ?? null,
 			notes: validatedData.notes ?? null,
 			imageUrl: validatedData.imageUrl ?? null,
+			priority: validatedData.priority ?? null,
 		})
 		.returning();
 

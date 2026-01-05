@@ -45,6 +45,13 @@ export const createItemSchema = z.object({
 		.nullable()
 		.optional(),
 	imageUrl: imageUrlSchema.nullable().optional(),
+	priority: z
+		.number()
+		.int()
+		.min(1)
+		.max(5)
+		.nullable()
+		.optional(),
 });
 
 /**
@@ -75,6 +82,13 @@ export const updateItemSchema = z.object({
 		.nullable()
 		.optional(),
 	imageUrl: imageUrlSchema.nullable().optional(),
+	priority: z
+		.number()
+		.int()
+		.min(1)
+		.max(5)
+		.nullable()
+		.optional(),
 });
 
 export type CreateItemInput = z.infer<typeof createItemSchema>;
