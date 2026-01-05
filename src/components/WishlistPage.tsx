@@ -1,13 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gift, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ItemCard } from "@/components/ItemCard";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
+import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
 import { Button } from "@/components/ui/button";
 import { useDeleteItem, useItems } from "@/hooks/useItems";
+import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
 import type { Item } from "@/lib/api";
 import * as m from "@/paraglide/messages";
@@ -117,6 +119,20 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		}
 	};
 
+	// Stable callback for keyboard shortcut
+	const openQuickAdd = useCallback(() => {
+		setQuickAddOpen(true);
+	}, []);
+
+	// Check if any dialog is open (to disable FAB and keyboard shortcut)
+	const anyDialogOpen = dialogOpen || quickAddOpen || !!deletingItem;
+
+	// Global keyboard shortcut: 'n' or 'a' to open quick add
+	useQuickAddShortcut({
+		onTrigger: openQuickAdd,
+		disabled: anyDialogOpen,
+	});
+
 	if (isLoading && !initialItems.length) {
 		return <LoadingSkeleton />;
 	}
@@ -124,7 +140,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	if (items.length === 0) {
 		return (
 			<div className="container mx-auto max-w-screen-xl px-4 py-8">
-				<EmptyState onAddItem={handleAddItem} onQuickAdd={() => setQuickAddOpen(true)} />
+				<EmptyState onAddItem={handleAddItem} onQuickAdd={openQuickAdd} />
 				<ItemFormDialog
 					open={dialogOpen}
 					onOpenChange={handleDialogClose}
@@ -143,6 +159,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					onConfirm={confirmDeleteItem}
 					destructive
 				/>
+				<QuickAddFAB onClick={openQuickAdd} dialogOpen={anyDialogOpen} />
 			</div>
 		);
 	}
@@ -152,7 +169,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.wishlist_title()}</h1>
 				<div className="flex gap-2">
-					<Button variant="outline" onClick={() => setQuickAddOpen(true)}>
+					<Button variant="outline" onClick={openQuickAdd}>
 						<Plus className="size-4" />
 						{m.item_quickAdd()}
 					</Button>
@@ -192,6 +209,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 				onConfirm={confirmDeleteItem}
 				destructive
 			/>
+			<QuickAddFAB onClick={openQuickAdd} dialogOpen={anyDialogOpen} />
 		</div>
 	);
 }
