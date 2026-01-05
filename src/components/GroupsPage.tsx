@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Plus, Users } from "lucide-react";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { GroupCard } from "@/components/GroupCard";
 import { GroupFormDialog } from "@/components/GroupFormDialog";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingGroup, setEditingGroup] = useState<GroupResponse | null>(null);
+	const [deletingGroup, setDeletingGroup] = useState<GroupResponse | null>(null);
 
 	const handleAddGroup = () => {
 		setEditingGroup(null);
@@ -56,10 +58,13 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 		setDialogOpen(true);
 	};
 
-	const handleDeleteGroup = async (group: GroupResponse) => {
-		if (window.confirm(m.groups_deleteConfirm({ name: group.name }))) {
-			await deleteGroup.mutateAsync(group.id);
-		}
+	const handleDeleteGroup = (group: GroupResponse) => {
+		setDeletingGroup(group);
+	};
+
+	const confirmDeleteGroup = async () => {
+		if (!deletingGroup) return;
+		await deleteGroup.mutateAsync(deletingGroup.id);
 	};
 
 	if (groups.length === 0) {
@@ -71,13 +76,20 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 					onOpenChange={setDialogOpen}
 					group={editingGroup}
 				/>
+				<ConfirmDialog
+					open={!!deletingGroup}
+					onOpenChange={(open) => !open && setDeletingGroup(null)}
+					title={m.groups_deleteConfirm({ name: deletingGroup?.name ?? "" })}
+					onConfirm={confirmDeleteGroup}
+					destructive
+				/>
 			</div>
 		);
 	}
 
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
-			<div className="mb-6 flex items-center justify-between">
+			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.groups_title()}</h1>
 				<Button onClick={handleAddGroup}>
 					<Plus className="size-4" />
@@ -100,6 +112,13 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}
 				group={editingGroup}
+			/>
+			<ConfirmDialog
+				open={!!deletingGroup}
+				onOpenChange={(open) => !open && setDeletingGroup(null)}
+				title={m.groups_deleteConfirm({ name: deletingGroup?.name ?? "" })}
+				onConfirm={confirmDeleteGroup}
+				destructive
 			/>
 		</div>
 	);

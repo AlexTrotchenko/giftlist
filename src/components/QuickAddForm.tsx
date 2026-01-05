@@ -86,7 +86,7 @@ export function QuickAddForm({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>{m.item_quickAdd()}</DialogTitle>
 					<DialogDescription>
