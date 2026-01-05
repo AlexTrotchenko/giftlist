@@ -284,5 +284,9 @@
   "wizard_previous": "Назад",
   "wizard_stepBasicInfo": "Основна інформація",
   "wizard_stepDetails": "Деталі",
-  "wizard_stepRecipients": "Отримувачі"
+  "wizard_stepRecipients": "Отримувачі",
+
+  "recipients_searchPlaceholder": "Пошук груп...",
+  "recipients_noGroupsFound": "Групи не знайдено.",
+  "recipients_createGroup": "Створити \"{name}\""
 }

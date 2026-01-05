@@ -17,7 +17,7 @@ import { RecipientsPicker } from "@/components/RecipientsPicker";
 import { StarRating } from "@/components/StarRating";
 import { StepIndicator } from "@/components/StepIndicator";
 import { useCreateItem, useUpdateItem } from "@/hooks/useItems";
-import { useGroups } from "@/hooks/useGroups";
+import { useGroups, useCreateGroup } from "@/hooks/useGroups";
 import {
 	useItemRecipients,
 	useSetItemRecipients,
@@ -92,9 +92,17 @@ export function ItemFormDialog({
 	const isEditing = !!item;
 	const createItem = useCreateItem();
 	const updateItem = useUpdateItem();
+	const createGroup = useCreateGroup();
 	const { data: groups = [] } = useGroups();
 	const { data: existingRecipients = [] } = useItemRecipients(item?.id);
 	const setItemRecipients = useSetItemRecipients();
+
+	// Inline group creation handler
+	const handleCreateGroup = useCallback(async (name: string) => {
+		const newGroup = await createGroup.mutateAsync({ name });
+		toast.success(m.group_createSuccess());
+		return newGroup;
+	}, [createGroup]);
 
 	const [currentStep, setCurrentStep] = useState<WizardStep>(0);
 	const [formData, setFormData] = useState<FormData>({
@@ -111,10 +119,10 @@ export function ItemFormDialog({
 	// Memoize recipient IDs to avoid infinite loops
 	const existingRecipientIds = existingRecipients.map((r) => r.groupId).join(",");
 
-	// Calculate total steps based on whether there are groups to share with
+	// Always show 3 steps since users can create groups inline
 	const hasGroups = groups.length > 0;
-	const totalSteps = hasGroups ? 3 : 2;
-	const steps = hasGroups ? WIZARD_STEPS : WIZARD_STEPS.slice(0, 2);
+	const totalSteps = 3;
+	const steps = WIZARD_STEPS;
 
 	useEffect(() => {
 		if (open) {
@@ -248,8 +256,15 @@ export function ItemFormDialog({
 		}
 	}, [currentStep]);
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
 		e.preventDefault();
+
+		// Prevent form submission unless we're on the final step
+		// This guards against race conditions with async group loading changing totalSteps
+		if (!isEditing && currentStep < totalSteps - 1) {
+			handleNext();
+			return;
+		}
 
 		if (!validateForm()) {
 			// Find first step with errors and go there
@@ -334,7 +349,16 @@ export function ItemFormDialog({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-[425px]">
-				<form onSubmit={handleSubmit}>
+				<form
+					onSubmit={handleSubmit}
+					onKeyDown={(e) => {
+						// Block Enter key from triggering form submission except in textareas
+						// This prevents implicit form submission when pressing Enter in inputs
+						if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement)) {
+							e.preventDefault();
+						}
+					}}
+				>
 					<DialogHeader>
 						<DialogTitle>{isEditing ? m.item_editItem() : m.item_addItem()}</DialogTitle>
 						<DialogDescription>
@@ -345,15 +369,20 @@ export function ItemFormDialog({
 					</DialogHeader>
 
 					<div className="py-4">
-						<StepIndicator
-							steps={steps}
-							currentStep={currentStep}
-							onStepClick={handleStepClick}
-						/>
+						{/* Show wizard steps only for creation mode */}
+						{!isEditing && (
+							<StepIndicator
+								steps={steps}
+								currentStep={currentStep}
+								onStepClick={handleStepClick}
+							/>
+						)}
 
-						{/* Step 1: Basic Info */}
-						{currentStep === 0 && (
+						{/* Full form for editing, wizard steps for creation */}
+						{isEditing ? (
+							/* Edit mode: Show all fields at once */
 							<div className="grid gap-4">
+								{/* Basic Info */}
 								<div className="grid gap-2">
 									<Label htmlFor="name">
 										{m.item_name()} <span className="text-destructive">*</span>
@@ -425,12 +454,8 @@ export function ItemFormDialog({
 										<p className="text-sm text-destructive">{resolveValidationMessage(errors.price)}</p>
 									)}
 								</div>
-							</div>
-						)}
 
-						{/* Step 2: Details */}
-						{currentStep === 1 && (
-							<div className="grid gap-4">
+								{/* Details */}
 								<div className="grid gap-2">
 									<Label>{m.priority_label()}</Label>
 									<StarRating
@@ -459,27 +484,163 @@ export function ItemFormDialog({
 										<p className="text-sm text-destructive">{resolveValidationMessage(errors.notes)}</p>
 									)}
 								</div>
-							</div>
-						)}
 
-						{/* Step 3: Recipients (only shown if there are groups) */}
-						{currentStep === 2 && hasGroups && (
-							<div className="grid gap-4">
-								<div className="grid gap-2">
-									<Label>{m.item_shareWith()}</Label>
-									<RecipientsPicker
-										groups={groups}
-										selectedGroupIds={formData.recipientGroupIds}
-										onSelectedChange={(groupIds) =>
-											setFormData((prev) => ({
-												...prev,
-												recipientGroupIds: groupIds,
-											}))
-										}
-										disabled={isLoading}
-									/>
-								</div>
+								{/* Recipients (only shown if there are groups) */}
+								{hasGroups && (
+									<div className="grid gap-2">
+										<Label>{m.item_shareWith()}</Label>
+										<RecipientsPicker
+											groups={groups}
+											selectedGroupIds={formData.recipientGroupIds}
+											onSelectedChange={(groupIds) =>
+												setFormData((prev) => ({
+													...prev,
+													recipientGroupIds: groupIds,
+												}))
+											}
+											onCreateGroup={handleCreateGroup}
+											isCreatingGroup={createGroup.isPending}
+											disabled={isLoading}
+										/>
+									</div>
+								)}
 							</div>
+						) : (
+							/* Creation mode: Wizard with steps */
+							<>
+								{/* Step 1: Basic Info */}
+								{currentStep === 0 && (
+									<div className="grid gap-4">
+										<div className="grid gap-2">
+											<Label htmlFor="name">
+												{m.item_name()} <span className="text-destructive">*</span>
+											</Label>
+											<Input
+												id="name"
+												value={formData.name}
+												onChange={(e) =>
+													setFormData((prev) => ({ ...prev, name: e.target.value }))
+												}
+												placeholder={m.item_namePlaceholder()}
+												aria-invalid={!!errors.name}
+												className={cn(errors.name && "motion-safe:animate-shake")}
+												autoFocus
+											/>
+											{errors.name && (
+												<p className="text-sm text-destructive">{resolveValidationMessage(errors.name)}</p>
+											)}
+										</div>
+
+										<div className="grid gap-2">
+											<Label>{m.item_image()}</Label>
+											<ImageUpload
+												value={formData.imageUrl}
+												onChange={(url) =>
+													setFormData((prev) => ({ ...prev, imageUrl: url }))
+												}
+												disabled={isLoading}
+											/>
+											{errors.imageUrl && (
+												<p className="text-sm text-destructive">{resolveValidationMessage(errors.imageUrl)}</p>
+											)}
+										</div>
+
+										<div className="grid gap-2">
+											<Label htmlFor="url">{m.item_url()}</Label>
+											<Input
+												id="url"
+												type="url"
+												value={formData.url}
+												onChange={(e) =>
+													setFormData((prev) => ({ ...prev, url: e.target.value }))
+												}
+												placeholder={m.item_urlPlaceholder()}
+												aria-invalid={!!errors.url}
+												className={cn(errors.url && "motion-safe:animate-shake")}
+											/>
+											{errors.url && (
+												<p className="text-sm text-destructive">{resolveValidationMessage(errors.url)}</p>
+											)}
+										</div>
+
+										<div className="grid gap-2">
+											<Label htmlFor="price">{m.item_priceLabel({ currency })}</Label>
+											<Input
+												id="price"
+												type="number"
+												step="0.01"
+												min="0"
+												value={formData.price}
+												onChange={(e) =>
+													setFormData((prev) => ({ ...prev, price: e.target.value }))
+												}
+												placeholder={m.item_pricePlaceholder()}
+												aria-invalid={!!errors.price}
+												className={cn(errors.price && "motion-safe:animate-shake")}
+											/>
+											{errors.price && (
+												<p className="text-sm text-destructive">{resolveValidationMessage(errors.price)}</p>
+											)}
+										</div>
+									</div>
+								)}
+
+								{/* Step 2: Details */}
+								{currentStep === 1 && (
+									<div className="grid gap-4">
+										<div className="grid gap-2">
+											<Label>{m.priority_label()}</Label>
+											<StarRating
+												value={formData.priority}
+												onChange={(priority) =>
+													setFormData((prev) => ({ ...prev, priority }))
+												}
+												disabled={isLoading}
+											/>
+										</div>
+
+										<div className="grid gap-2">
+											<Label htmlFor="notes">{m.item_notes()}</Label>
+											<Textarea
+												id="notes"
+												value={formData.notes}
+												onChange={(e) =>
+													setFormData((prev) => ({ ...prev, notes: e.target.value }))
+												}
+												placeholder={m.item_notesPlaceholder()}
+												rows={4}
+												aria-invalid={!!errors.notes}
+												className={cn(errors.notes && "motion-safe:animate-shake")}
+											/>
+											{errors.notes && (
+												<p className="text-sm text-destructive">{resolveValidationMessage(errors.notes)}</p>
+											)}
+										</div>
+									</div>
+								)}
+
+								{/* Step 3: Recipients (only shown if there are groups or can create them) */}
+								{currentStep === 2 && (
+									<div className="grid gap-4">
+										<div className="grid gap-2">
+											<Label>{m.item_shareWith()}</Label>
+											<RecipientsPicker
+												groups={groups}
+												selectedGroupIds={formData.recipientGroupIds}
+												onSelectedChange={(groupIds) =>
+													setFormData((prev) => ({
+														...prev,
+														recipientGroupIds: groupIds,
+													}))
+												}
+												onCreateGroup={handleCreateGroup}
+												isCreatingGroup={createGroup.isPending}
+												disabled={isLoading}
+											/>
+										</div>
+									</div>
+								)}
+							</>
 						)}
 
 						{mutationError && (
@@ -489,40 +650,59 @@ export function ItemFormDialog({
 						)}
 					</div>
 
-					<DialogFooter className="flex-col gap-2 sm:flex-row">
-						<div className="flex flex-1 gap-2">
-							{currentStep > 0 && (
+					<DialogFooter>
+						{isEditing ? (
+							/* Edit mode: Cancel first in DOM, appears at top on mobile (flex-col-reverse) */
+							<>
 								<Button
 									type="button"
 									variant="outline"
-									onClick={handleBack}
+									onClick={() => onOpenChange(false)}
 									disabled={isLoading}
+									className="w-full sm:w-auto"
 								>
-									{m.wizard_previous()}
+									{m.common_cancel()}
 								</Button>
-							)}
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => onOpenChange(false)}
-								disabled={isLoading}
-								className="sm:ml-auto"
-							>
-								{m.common_cancel()}
-							</Button>
-						</div>
-						{isLastStep ? (
-							<Button type="submit" disabled={isLoading}>
-								{isLoading
-									? m.common_saving()
-									: isEditing
-										? m.common_saveChanges()
-										: m.item_addItem()}
-							</Button>
+								<Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+									{isLoading ? m.common_saving() : m.common_saveChanges()}
+								</Button>
+							</>
 						) : (
-							<Button type="button" onClick={handleNext} disabled={isLoading}>
-								{m.wizard_next()}
+							/* Creation mode: Secondary buttons first in DOM, primary last */
+							<>
+								<div className="flex w-full gap-2 sm:w-auto">
+									{currentStep > 0 && (
+										<Button
+											type="button"
+											variant="outline"
+											onClick={handleBack}
+											disabled={isLoading}
+											className="flex-1 sm:flex-initial"
+										>
+											{m.wizard_previous()}
+										</Button>
+									)}
+									<Button
+										type="button"
+										variant="outline"
+										onClick={() => onOpenChange(false)}
+										disabled={isLoading}
+										className="flex-1 sm:flex-initial"
+									>
+										{m.common_cancel()}
+									</Button>
+								</div>
+								<Button
+								type="button"
+								onClick={isLastStep ? handleSubmit : handleNext}
+								disabled={isLoading}
+								className="w-full sm:w-auto"
+							>
+								{isLastStep
+									? (isLoading ? m.common_saving() : m.item_addItem())
+									: m.wizard_next()}
 							</Button>
+							</>
 						)}
 					</DialogFooter>
 				</form>
