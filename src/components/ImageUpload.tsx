@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Upload, X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -70,11 +71,14 @@ export function ImageUpload({
 
 			if (data.url) {
 				onChange(data.url);
+				toast.success(m.upload_success());
 			}
 			setUploadState("idle");
 		} catch (err) {
 			setUploadState("error");
-			setError(err instanceof Error ? err.message : "Upload failed");
+			const errorMessage = err instanceof Error ? err.message : "Upload failed";
+			setError(errorMessage);
+			toast.error(errorMessage);
 			setPreview(null);
 			URL.revokeObjectURL(previewUrl);
 		}

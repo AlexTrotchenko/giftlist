@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Check, Loader2, Mail, Users, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Popover,
@@ -123,6 +124,8 @@ function InvitationsList() {
 	const handleAccept = (token: string) => {
 		setProcessingToken(token);
 		acceptInvitation.mutate(token, {
+			onSuccess: () => toast.success(m.invitations_acceptSuccess()),
+			onError: (err) => toast.error(err.message || m.errors_genericError()),
 			onSettled: () => setProcessingToken(null),
 		});
 	};
@@ -130,6 +133,8 @@ function InvitationsList() {
 	const handleDecline = (token: string) => {
 		setProcessingToken(token);
 		declineInvitation.mutate(token, {
+			onSuccess: () => toast.success(m.invitations_declineSuccess()),
+			onError: (err) => toast.error(err.message || m.errors_genericError()),
 			onSettled: () => setProcessingToken(null),
 		});
 	};
@@ -146,7 +151,7 @@ function InvitationsList() {
 				>
 					<Mail className="size-5" />
 					{!isLoadingCount && invitationCount > 0 && (
-						<span className="-top-1 -right-1 absolute flex size-5 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-xs">
+						<span className="-top-1 -right-1 absolute flex size-5 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-xs motion-safe:animate-badge-pulse">
 							{invitationCount > 99 ? "99+" : invitationCount}
 						</span>
 					)}

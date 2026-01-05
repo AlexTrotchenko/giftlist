@@ -1,0 +1,69 @@
+import { useEffect, useState } from "react"
+import {
+  CircleCheckIcon,
+  InfoIcon,
+  Loader2Icon,
+  OctagonXIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
+import { Toaster as Sonner, type ToasterProps } from "sonner"
+
+type Theme = "light" | "dark"
+
+function useTheme(): Theme | null {
+  // Start with null to avoid hydration mismatch (server doesn't know localStorage)
+  const [theme, setTheme] = useState<Theme | null>(null)
+
+  useEffect(() => {
+    // Initial theme from localStorage or default to dark
+    const savedMode = (localStorage.getItem("color-mode") as Theme) || "dark"
+    setTheme(savedMode)
+
+    // Watch for theme changes via MutationObserver on the html element
+    const observer = new MutationObserver(() => {
+      const isDark = document.documentElement.classList.contains("dark")
+      setTheme(isDark ? "dark" : "light")
+    })
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
+
+    return () => observer.disconnect()
+  }, [])
+
+  return theme
+}
+
+const Toaster = ({ ...props }: ToasterProps) => {
+  const theme = useTheme()
+
+  // Don't render until we know the theme (prevents hydration mismatch)
+  if (theme === null) return null
+
+  return (
+    <Sonner
+      theme={theme}
+      className="toaster group"
+      icons={{
+        success: <CircleCheckIcon className="size-4" />,
+        info: <InfoIcon className="size-4" />,
+        warning: <TriangleAlertIcon className="size-4" />,
+        error: <OctagonXIcon className="size-4" />,
+        loading: <Loader2Icon className="size-4 animate-spin" />,
+      }}
+      style={
+        {
+          "--normal-bg": "var(--popover)",
+          "--normal-text": "var(--popover-foreground)",
+          "--normal-border": "var(--border)",
+          "--border-radius": "var(--radius)",
+        } as React.CSSProperties
+      }
+      {...props}
+    />
+  )
+}
+
+export { Toaster }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -22,6 +23,7 @@ import {
 import type { Item } from "@/lib/api";
 import { createItemSchema, updateItemSchema } from "@/lib/validations/item";
 import { resolveValidationMessage } from "@/i18n/zod-messages";
+import { cn } from "@/lib/utils";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 import { getCurrency } from "@/i18n/formatting";
@@ -174,7 +176,7 @@ export function ItemFormDialog({
 			imageUrl: formData.imageUrl,
 		};
 
-		try {
+		const saveOperation = async () => {
 			let itemId: string;
 
 			if (isEditing && item) {
@@ -200,9 +202,13 @@ export function ItemFormDialog({
 			}
 
 			onOpenChange(false);
-		} catch {
-			// Error is handled by mutation state
-		}
+		};
+
+		toast.promise(saveOperation(), {
+			loading: m.item_savingItem(),
+			success: isEditing ? m.item_updateSuccess() : m.item_addSuccess(),
+			error: (err) => err.message || m.errors_failedToSave(),
+		});
 	};
 
 	const isLoading =
@@ -241,6 +247,7 @@ export function ItemFormDialog({
 								}
 								placeholder={m.item_namePlaceholder()}
 								aria-invalid={!!errors.name}
+								className={cn(errors.name && "motion-safe:animate-shake")}
 							/>
 							{errors.name && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.name)}</p>
@@ -272,6 +279,7 @@ export function ItemFormDialog({
 								}
 								placeholder={m.item_urlPlaceholder()}
 								aria-invalid={!!errors.url}
+								className={cn(errors.url && "motion-safe:animate-shake")}
 							/>
 							{errors.url && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.url)}</p>
@@ -291,6 +299,7 @@ export function ItemFormDialog({
 								}
 								placeholder={m.item_pricePlaceholder()}
 								aria-invalid={!!errors.price}
+								className={cn(errors.price && "motion-safe:animate-shake")}
 							/>
 							{errors.price && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.price)}</p>
@@ -308,6 +317,7 @@ export function ItemFormDialog({
 								placeholder={m.item_notesPlaceholder()}
 								rows={3}
 								aria-invalid={!!errors.notes}
+								className={cn(errors.notes && "motion-safe:animate-shake")}
 							/>
 							{errors.notes && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.notes)}</p>

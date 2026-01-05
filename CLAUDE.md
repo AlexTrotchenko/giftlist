@@ -43,6 +43,24 @@ npm run cf-typegen   # Regenerate Cloudflare Worker type definitions
 - Use `cn()` from `@/lib/utils` to merge class names
 - DO NOT write custom CSS; use TailwindCSS utility classes exclusively
 
+**Animations:**
+- CSS-first approach using tw-animate-css (already installed)
+- Use `motion-safe:` prefix for all animations (respects prefers-reduced-motion)
+- MD3 easing curves available: `ease-standard`, `ease-decelerate`, `ease-accelerate`
+- Custom keyframes in global.css: `shake`, `ring`, `check-bounce`, `badge-pulse`
+- Toasts: Use Sonner via `toast.success()`, `toast.error()`, `toast.promise()`
+- Timing: 83-250ms enter, 50-100ms exit, target 60fps
+- Motion/Framer Motion with LazyMotion for list animations only
+- Use `<AnimatedList>` wrapper for staggered list enter/exit
+- Animate UI components in `src/components/animate-ui/`
+
+**View Transitions:**
+- Astro View Transitions enabled via `<ViewTransitions />` in AppLayout.astro
+- Use `transition:persist` on Header, Toaster to keep them alive across navigation
+- Use `transition:name="unique-id"` for shared element animations between pages
+- Scripts must listen to `astro:page-load` event (not just DOMContentLoaded)
+- Theme script uses `astro:after-swap` to apply theme before paint
+
 **Path Aliases:** `@/*` resolves to `src/*`
 
 **Types:**

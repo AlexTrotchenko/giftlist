@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -15,6 +16,7 @@ import { useCreateGroup, useUpdateGroup } from "@/hooks/useGroups";
 import type { GroupResponse } from "@/db/types";
 import { createGroupSchema, updateGroupSchema } from "@/lib/validations/group";
 import { resolveValidationMessage } from "@/i18n/zod-messages";
+import { cn } from "@/lib/utils";
 import * as m from "@/paraglide/messages";
 
 interface GroupFormDialogProps {
@@ -96,16 +98,20 @@ export function GroupFormDialog({
 			description: formData.description || null,
 		};
 
-		try {
+		const saveOperation = async () => {
 			if (isEditing && group) {
 				await updateGroup.mutateAsync({ id: group.id, data });
 			} else {
 				await createGroup.mutateAsync(data);
 			}
 			onOpenChange(false);
-		} catch {
-			// Error is handled by mutation state
-		}
+		};
+
+		toast.promise(saveOperation(), {
+			loading: m.group_savingGroup(),
+			success: isEditing ? m.group_updateSuccess() : m.group_createSuccess(),
+			error: (err) => err.message || m.errors_failedToSave(),
+		});
 	};
 
 	const isLoading = createGroup.isPending || updateGroup.isPending;
@@ -137,6 +143,7 @@ export function GroupFormDialog({
 								}
 								placeholder={m.groups_namePlaceholder()}
 								aria-invalid={!!errors.name}
+								className={cn(errors.name && "motion-safe:animate-shake")}
 							/>
 							{errors.name && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.name)}</p>
@@ -157,6 +164,7 @@ export function GroupFormDialog({
 								placeholder={m.groups_descriptionPlaceholder()}
 								rows={3}
 								aria-invalid={!!errors.description}
+								className={cn(errors.description && "motion-safe:animate-shake")}
 							/>
 							{errors.description && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.description)}</p>

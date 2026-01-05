@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gift, Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { ItemCard } from "@/components/ItemCard";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
@@ -90,7 +91,11 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 
 	const handleDeleteItem = async (item: Item) => {
 		if (window.confirm(m.wishlist_deleteConfirm({ name: item.name }))) {
-			await deleteItem.mutateAsync(item.id);
+			toast.promise(deleteItem.mutateAsync(item.id), {
+				loading: m.item_deletingItem(),
+				success: m.item_deleteSuccess(),
+				error: (err) => err.message || m.errors_failedToSave(),
+			});
 		}
 	};
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { AlertTriangle, Check, Loader2, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +110,8 @@ export function ClaimButton({
 		createClaim.mutate(
 			{ itemId },
 			{
+				onSuccess: () => toast.success(m.claims_claimSuccess()),
+				onError: (err) => toast.error(err.message || m.errors_genericError()),
 				onSettled: () => setIsProcessing(false),
 			},
 		);
@@ -118,10 +121,15 @@ export function ClaimButton({
 		if (myClaims.length === 0) return;
 		setIsProcessing(true);
 		// Release all my claims on this item
-		const releasePromises = myClaims.map((claim) =>
-			releaseClaim.mutateAsync(claim.id),
+		const releasePromise = Promise.all(
+			myClaims.map((claim) => releaseClaim.mutateAsync(claim.id)),
 		);
-		Promise.all(releasePromises).finally(() => setIsProcessing(false));
+		toast.promise(releasePromise, {
+			loading: m.claims_releasing(),
+			success: m.claims_releaseSuccess(),
+			error: (err) => err.message || m.errors_genericError(),
+		});
+		releasePromise.finally(() => setIsProcessing(false));
 	};
 
 	const isPending = isProcessing || createClaim.isPending || releaseClaim.isPending;
@@ -214,7 +222,7 @@ export function ClaimButton({
 						"dark:bg-green-900/30 dark:text-green-400",
 					)}
 				>
-					<Check className="size-3" />
+					<Check className="size-3 motion-safe:animate-check-bounce" />
 					{claimer?.user.name
 						? m.claims_claimedBy({ name: claimer.user.name })
 						: m.claims_fullyClaimedByOther()}
