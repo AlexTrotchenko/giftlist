@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gift } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { MyClaimsSection } from "@/components/MyClaimsSection";
+import { QuickAddFAB } from "@/components/QuickAddFAB";
+import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
 import { SharedItemCard } from "@/components/SharedItemCard";
 import {
 	Select,
@@ -12,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import type { SharedItem } from "@/hooks/useSharedItems";
 import { useSharedItems } from "@/hooks/useSharedItems";
+import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
 import * as m from "@/paraglide/messages";
 
@@ -64,6 +68,34 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 	const { data: items = [] } = useSharedItems(initialItems);
 	const [selectedGroup, setSelectedGroup] = useState<string>(ALL_GROUPS);
 
+	// Quick add state
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [quickAddOpen, setQuickAddOpen] = useState(false);
+	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
+
+	const handleExtractComplete = useCallback((data: ExtractedData) => {
+		setExtractedData(data);
+		setDialogOpen(true);
+	}, []);
+
+	const handleDialogClose = useCallback((open: boolean) => {
+		setDialogOpen(open);
+		if (!open) {
+			setExtractedData(null);
+		}
+	}, []);
+
+	const openQuickAdd = useCallback(() => {
+		setQuickAddOpen(true);
+	}, []);
+
+	const anyDialogOpen = dialogOpen || quickAddOpen;
+
+	useQuickAddShortcut({
+		onTrigger: openQuickAdd,
+		disabled: anyDialogOpen,
+	});
+
 	// Extract unique groups from all items
 	const groups = useMemo(() => {
 		const groupMap = new Map<string, string>();
@@ -93,6 +125,18 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 		return (
 			<div className="container mx-auto max-w-screen-xl px-4 py-8">
 				<EmptyState />
+				<ItemFormDialog
+					open={dialogOpen}
+					onOpenChange={handleDialogClose}
+					item={null}
+					defaultValues={extractedData ?? undefined}
+				/>
+				<QuickAddForm
+					open={quickAddOpen}
+					onOpenChange={setQuickAddOpen}
+					onExtractComplete={handleExtractComplete}
+				/>
+				<QuickAddFAB onClick={openQuickAdd} dialogOpen={anyDialogOpen} />
 			</div>
 		);
 	}
@@ -137,6 +181,19 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					))}
 				</div>
 			)}
+
+			<ItemFormDialog
+				open={dialogOpen}
+				onOpenChange={handleDialogClose}
+				item={null}
+				defaultValues={extractedData ?? undefined}
+			/>
+			<QuickAddForm
+				open={quickAddOpen}
+				onOpenChange={setQuickAddOpen}
+				onExtractComplete={handleExtractComplete}
+			/>
+			<QuickAddFAB onClick={openQuickAdd} dialogOpen={anyDialogOpen} />
 		</div>
 	);
 }

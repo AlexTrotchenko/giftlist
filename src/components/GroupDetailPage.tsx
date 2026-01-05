@@ -12,7 +12,7 @@ import {
 	Users,
 	X,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,13 @@ import {
 	useRemoveMember,
 	useUpdateGroup,
 } from "@/hooks/useGroups";
+import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { GroupFormDialog } from "./GroupFormDialog";
 import { InviteMemberDialog } from "./InviteMemberDialog";
+import { ItemFormDialog } from "./ItemFormDialog";
+import { QuickAddFAB } from "./QuickAddFAB";
+import { QuickAddForm, type ExtractedData } from "./QuickAddForm";
 import * as m from "@/paraglide/messages";
 
 const queryClient = new QueryClient({
@@ -237,6 +241,34 @@ function GroupDetailContent({
 	const [removingMember, setRemovingMember] = useState<{ userId: string; name: string; isCurrentUser: boolean } | null>(null);
 	const [cancellingInvitation, setCancellingInvitation] = useState<string | null>(null);
 
+	// Quick add state for items
+	const [itemDialogOpen, setItemDialogOpen] = useState(false);
+	const [quickAddOpen, setQuickAddOpen] = useState(false);
+	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
+
+	const handleExtractComplete = useCallback((data: ExtractedData) => {
+		setExtractedData(data);
+		setItemDialogOpen(true);
+	}, []);
+
+	const handleItemDialogClose = useCallback((open: boolean) => {
+		setItemDialogOpen(open);
+		if (!open) {
+			setExtractedData(null);
+		}
+	}, []);
+
+	const openQuickAdd = useCallback(() => {
+		setQuickAddOpen(true);
+	}, []);
+
+	const anyDialogOpen = editDialogOpen || inviteDialogOpen || itemDialogOpen || quickAddOpen || !!removingMember || !!cancellingInvitation;
+
+	useQuickAddShortcut({
+		onTrigger: openQuickAdd,
+		disabled: anyDialogOpen,
+	});
+
 	const handleRemoveMember = (userId: string) => {
 		const isCurrentUser = userId === currentUserId;
 		const member = members.find((m) => m.userId === userId);
@@ -402,6 +434,18 @@ function GroupDetailContent({
 				onConfirm={confirmCancelInvitation}
 				destructive
 			/>
+			<ItemFormDialog
+				open={itemDialogOpen}
+				onOpenChange={handleItemDialogClose}
+				item={null}
+				defaultValues={extractedData ?? undefined}
+			/>
+			<QuickAddForm
+				open={quickAddOpen}
+				onOpenChange={setQuickAddOpen}
+				onExtractComplete={handleExtractComplete}
+			/>
+			<QuickAddFAB onClick={openQuickAdd} dialogOpen={anyDialogOpen} />
 		</div>
 	);
 }

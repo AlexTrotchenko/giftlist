@@ -37,6 +37,8 @@
   --animate-ring: ring 0.5s var(--ease-standard);
   --animate-check-bounce: check-bounce 0.3s var(--ease-decelerate);
   --animate-badge-pulse: badge-pulse 2s var(--ease-standard) infinite;
+  --animate-fab-press: fab-press 0.15s var(--ease-decelerate);
+  --animate-shine: shine 3.6s var(--ease-standard) infinite;
 
   /* Radius - 4px grid aligned, warm retro aesthetic */
   --radius-xs: 0.125rem;
@@ -156,6 +158,21 @@
 @keyframes badge-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* FAB icon press animation - rotate + scale bounce */
+@keyframes fab-press {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(0.85) rotate(90deg); }
+  100% { transform: scale(1) rotate(90deg); }
+}
+
+/* Shine sweep animation - continuous loop with pause */
+@keyframes shine {
+  0% { transform: translateX(-100%) skewX(var(--shine-deg, -20deg)); }
+  /* Sweep happens in first portion, then pause */
+  23% { transform: translateX(100%) skewX(var(--shine-deg, -20deg)); }
+  100% { transform: translateX(100%) skewX(var(--shine-deg, -20deg)); }
 }
 
 /* Accessibility: Respect user preference for reduced motion */

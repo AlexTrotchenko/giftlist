@@ -1,11 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Plus, Users } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { GroupCard } from "@/components/GroupCard";
 import { GroupFormDialog } from "@/components/GroupFormDialog";
+import { ItemFormDialog } from "@/components/ItemFormDialog";
+import { QuickAddFAB } from "@/components/QuickAddFAB";
+import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
 import { Button } from "@/components/ui/button";
 import { useDeleteGroup, useGroups } from "@/hooks/useGroups";
+import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import type { GroupResponse } from "@/db/types";
 import * as m from "@/paraglide/messages";
 
@@ -48,6 +52,34 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 	const [editingGroup, setEditingGroup] = useState<GroupResponse | null>(null);
 	const [deletingGroup, setDeletingGroup] = useState<GroupResponse | null>(null);
 
+	// Quick add state for items
+	const [itemDialogOpen, setItemDialogOpen] = useState(false);
+	const [quickAddOpen, setQuickAddOpen] = useState(false);
+	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
+
+	const handleExtractComplete = useCallback((data: ExtractedData) => {
+		setExtractedData(data);
+		setItemDialogOpen(true);
+	}, []);
+
+	const handleItemDialogClose = useCallback((open: boolean) => {
+		setItemDialogOpen(open);
+		if (!open) {
+			setExtractedData(null);
+		}
+	}, []);
+
+	const openQuickAdd = useCallback(() => {
+		setQuickAddOpen(true);
+	}, []);
+
+	const anyDialogOpen = dialogOpen || itemDialogOpen || quickAddOpen || !!deletingGroup;
+
+	useQuickAddShortcut({
+		onTrigger: openQuickAdd,
+		disabled: anyDialogOpen,
+	});
+
 	const handleAddGroup = () => {
 		setEditingGroup(null);
 		setDialogOpen(true);
@@ -83,6 +115,18 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 					onConfirm={confirmDeleteGroup}
 					destructive
 				/>
+				<ItemFormDialog
+					open={itemDialogOpen}
+					onOpenChange={handleItemDialogClose}
+					item={null}
+					defaultValues={extractedData ?? undefined}
+				/>
+				<QuickAddForm
+					open={quickAddOpen}
+					onOpenChange={setQuickAddOpen}
+					onExtractComplete={handleExtractComplete}
+				/>
+				<QuickAddFAB onClick={openQuickAdd} dialogOpen={anyDialogOpen} />
 			</div>
 		);
 	}
@@ -120,6 +164,18 @@ function GroupsContent({ initialGroups }: GroupsPageProps) {
 				onConfirm={confirmDeleteGroup}
 				destructive
 			/>
+			<ItemFormDialog
+				open={itemDialogOpen}
+				onOpenChange={handleItemDialogClose}
+				item={null}
+				defaultValues={extractedData ?? undefined}
+			/>
+			<QuickAddForm
+				open={quickAddOpen}
+				onOpenChange={setQuickAddOpen}
+				onExtractComplete={handleExtractComplete}
+			/>
+			<QuickAddFAB onClick={openQuickAdd} dialogOpen={anyDialogOpen} />
 		</div>
 	);
 }
