@@ -70,6 +70,10 @@ npm run cf-typegen   # Regenerate Cloudflare Worker type definitions
 - Frontend components should use `*Response` types for JSON data
 - Never define manual interfaces for DB entities; extend from Drizzle types
 
+**Database Migrations:**
+- Always use `npx drizzle-kit generate --name <migration-name>` to create migrations
+- Never manually create migration files or edit meta files
+
 ## Issue Tracking
 
 This project uses beads (`bd`) for AI-supervised issue tracking. See `AGENTS.md` for the mandatory session workflow including issue updates and pushing changes.
