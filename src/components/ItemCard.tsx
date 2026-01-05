@@ -9,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { PriorityStars } from "@/components/PriorityStars";
 import { useItemRecipients } from "@/hooks/useItemRecipients";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
@@ -46,11 +47,14 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 			<CardHeader className="pb-2">
 				<div className="flex items-start justify-between gap-2">
 					<CardTitle className="line-clamp-2 text-base">{item.name}</CardTitle>
-					{item.price !== null && (
-						<span className="shrink-0 font-semibold text-primary">
-							{formatPrice(item.price, locale)}
-						</span>
-					)}
+					<div className="flex shrink-0 items-center gap-2">
+						<PriorityStars priority={item.priority} />
+						{item.price !== null && (
+							<span className="font-semibold text-primary">
+								{formatPrice(item.price, locale)}
+							</span>
+						)}
+					</div>
 				</div>
 			</CardHeader>
 

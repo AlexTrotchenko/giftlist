@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClaimButton } from "@/components/ClaimButton";
+import { PriorityStars } from "@/components/PriorityStars";
 import { cn, isExpiringSoon } from "@/lib/utils";
 import { getLocale } from "@/i18n/LocaleContext";
 import { formatPrice, getExpirationText } from "@/i18n/formatting";
@@ -93,11 +94,14 @@ export function SharedItemCard({ sharedItem, currentUserId }: SharedItemCardProp
 			<CardHeader className="pb-2">
 				<div className="flex items-start justify-between gap-2">
 					<CardTitle className="line-clamp-2 text-base">{item.name}</CardTitle>
-					{item.price !== null && (
-						<span className="shrink-0 font-semibold text-primary">
-							{formatPrice(item.price, locale)}
-						</span>
-					)}
+					<div className="flex shrink-0 items-center gap-2">
+						<PriorityStars priority={item.priority} />
+						{item.price !== null && (
+							<span className="font-semibold text-primary">
+								{formatPrice(item.price, locale)}
+							</span>
+						)}
+					</div>
 				</div>
 				{/* Owner info */}
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">

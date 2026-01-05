@@ -77,6 +77,7 @@ export async function GET(context: APIContext) {
 			price: items.price,
 			notes: items.notes,
 			imageUrl: items.imageUrl,
+			priority: items.priority,
 			createdAt: items.createdAt,
 			updatedAt: items.updatedAt,
 		})
@@ -196,6 +197,8 @@ export async function PUT(context: APIContext) {
 	if (validatedData.notes !== undefined) updateData.notes = validatedData.notes;
 	if (validatedData.imageUrl !== undefined)
 		updateData.imageUrl = validatedData.imageUrl;
+	if (validatedData.priority !== undefined)
+		updateData.priority = validatedData.priority;
 
 	const [updatedItem] = await db
 		.update(items)

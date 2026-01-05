@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/ImageUpload";
 import { RecipientsPicker } from "@/components/RecipientsPicker";
+import { StarRating } from "@/components/StarRating";
 import { useCreateItem, useUpdateItem } from "@/hooks/useItems";
 import { useGroups } from "@/hooks/useGroups";
 import {
@@ -49,6 +50,7 @@ interface FormData {
 	price: string;
 	notes: string;
 	imageUrl: string | null;
+	priority: number | null;
 	recipientGroupIds: string[];
 }
 
@@ -91,6 +93,7 @@ export function ItemFormDialog({
 		price: "",
 		notes: "",
 		imageUrl: null,
+		priority: null,
 		recipientGroupIds: [],
 	});
 	const [errors, setErrors] = useState<FormErrors>({});
@@ -107,6 +110,7 @@ export function ItemFormDialog({
 					price: defaultValues?.price ?? formatPriceForInput(item.price),
 					notes: defaultValues?.notes ?? (item.notes ?? ""),
 					imageUrl: defaultValues?.imageUrl !== undefined ? defaultValues.imageUrl : (item.imageUrl ?? null),
+					priority: item.priority ?? null,
 					recipientGroupIds: existingRecipientIds ? existingRecipientIds.split(",") : [],
 				});
 			} else if (defaultValues) {
@@ -116,6 +120,7 @@ export function ItemFormDialog({
 					price: defaultValues.price ?? "",
 					notes: defaultValues.notes ?? "",
 					imageUrl: defaultValues.imageUrl ?? null,
+					priority: null,
 					recipientGroupIds: [],
 				});
 			} else {
@@ -125,6 +130,7 @@ export function ItemFormDialog({
 					price: "",
 					notes: "",
 					imageUrl: null,
+					priority: null,
 					recipientGroupIds: [],
 				});
 			}
@@ -141,6 +147,7 @@ export function ItemFormDialog({
 			price: parsePrice(formData.price),
 			notes: formData.notes || null,
 			imageUrl: formData.imageUrl,
+			priority: formData.priority,
 		};
 
 		const schema = isEditing ? updateItemSchema : createItemSchema;
@@ -174,6 +181,7 @@ export function ItemFormDialog({
 			price: parsePrice(formData.price),
 			notes: formData.notes || null,
 			imageUrl: formData.imageUrl,
+			priority: formData.priority,
 		};
 
 		const saveOperation = async () => {
@@ -304,6 +312,17 @@ export function ItemFormDialog({
 							{errors.price && (
 								<p className="text-sm text-destructive">{resolveValidationMessage(errors.price)}</p>
 							)}
+						</div>
+
+						<div className="grid gap-2">
+							<Label>{m.priority_label()}</Label>
+							<StarRating
+								value={formData.priority}
+								onChange={(priority) =>
+									setFormData((prev) => ({ ...prev, priority }))
+								}
+								disabled={isLoading}
+							/>
 						</div>
 
 						<div className="grid gap-2">

@@ -37,6 +37,7 @@ export const items = sqliteTable("items", {
 	price: integer("price"), // cents to avoid float issues
 	notes: text("notes"),
 	imageUrl: text("image_url"),
+	priority: integer("priority"), // 1-5 stars, null = no priority
 	createdAt: integer("created_at", { mode: "timestamp_ms" }).$defaultFn(
 		() => new Date(),
 	),

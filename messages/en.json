@@ -272,5 +272,9 @@
   "common_retry": "Retry",
 
   "share_notSupported": "Share Target Not Supported",
-  "share_iosMessage": "iOS PWAs don't support web share targets yet. Open the app from your home screen and use Quick Add instead."
+  "share_iosMessage": "iOS PWAs don't support web share targets yet. Open the app from your home screen and use Quick Add instead.",
+
+  "priority_label": "Priority",
+  "priority_ratingGroup": "Priority rating",
+  "priority_starLabel": "{count} stars"
 }
