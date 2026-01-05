@@ -27,6 +27,7 @@ import {
 	useRemoveMember,
 	useUpdateGroup,
 } from "@/hooks/useGroups";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { GroupFormDialog } from "./GroupFormDialog";
 import { InviteMemberDialog } from "./InviteMemberDialog";
 import * as m from "@/paraglide/messages";
@@ -102,8 +103,8 @@ function MemberCard({
 
 	return (
 		<div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-			<div className="flex items-center gap-3">
-				<Avatar className="size-10">
+			<div className="flex min-w-0 flex-1 items-center gap-3">
+				<Avatar className="size-10 shrink-0">
 					{member.user.avatarUrl && (
 						<AvatarImage
 							src={member.user.avatarUrl}
@@ -115,7 +116,7 @@ function MemberCard({
 					</AvatarFallback>
 				</Avatar>
 				<div className="min-w-0 flex-1">
-					<div className="flex items-center gap-2">
+					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
 						<p className="truncate font-medium">
 							{member.user.name ?? member.user.email}
 							{isCurrentUser && (
@@ -137,8 +138,8 @@ function MemberCard({
 					size="icon"
 					className={
 						isCurrentUser
-							? "size-8"
-							: "size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+							? "size-8 shrink-0"
+							: "size-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
 					}
 					onClick={() => onRemove(member.userId)}
 					disabled={isRemoving}
@@ -178,14 +179,14 @@ function PendingInvitationCard({
 
 	return (
 		<div className="flex items-center justify-between gap-3 rounded-lg border border-dashed p-3">
-			<div className="flex items-center gap-3">
-				<div className="flex size-10 items-center justify-center rounded-full bg-muted">
+			<div className="flex min-w-0 flex-1 items-center gap-3">
+				<div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
 					<Mail className="size-5 text-muted-foreground" />
 				</div>
 				<div className="min-w-0 flex-1">
 					<p className="truncate font-medium">{invitation.inviteeEmail}</p>
 					<div className="flex items-center gap-1 text-sm text-muted-foreground">
-						<Clock className="size-3" />
+						<Clock className="size-3 shrink-0" />
 						{isExpired ? (
 							<span className="text-destructive">{m.invitations_expired()}</span>
 						) : (
@@ -197,7 +198,7 @@ function PendingInvitationCard({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="size-8 text-muted-foreground hover:text-foreground"
+				className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
 				onClick={() => onCancel(invitation.id)}
 				disabled={isCancelling}
 				aria-label={m.groups_cancelInvitationAriaLabel({ email: invitation.inviteeEmail })}
@@ -233,35 +234,40 @@ function GroupDetailContent({
 
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+	const [removingMember, setRemovingMember] = useState<{ userId: string; name: string; isCurrentUser: boolean } | null>(null);
+	const [cancellingInvitation, setCancellingInvitation] = useState<string | null>(null);
 
-	const handleRemoveMember = async (userId: string) => {
+	const handleRemoveMember = (userId: string) => {
 		const isCurrentUser = userId === currentUserId;
 		const member = members.find((m) => m.userId === userId);
-		const message = isCurrentUser
-			? m.groups_leaveConfirm()
-			: m.groups_removeConfirm({ name: member?.user.name ?? member?.user.email ?? "" });
+		const name = member?.user.name ?? member?.user.email ?? "";
+		setRemovingMember({ userId, name, isCurrentUser });
+	};
 
-		if (window.confirm(message)) {
-			try {
-				await removeMember.mutateAsync(userId);
-				toast.success(m.members_removeSuccess());
-				if (isCurrentUser) {
-					window.location.href = "/groups";
-				}
-			} catch (err) {
-				toast.error(err instanceof Error ? err.message : m.errors_genericError());
+	const confirmRemoveMember = async () => {
+		if (!removingMember) return;
+		try {
+			await removeMember.mutateAsync(removingMember.userId);
+			toast.success(m.members_removeSuccess());
+			if (removingMember.isCurrentUser) {
+				window.location.href = "/groups";
 			}
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : m.errors_genericError());
 		}
 	};
 
-	const handleCancelInvitation = async (invitationId: string) => {
-		if (window.confirm(m.invitations_cancelInvitation())) {
-			try {
-				await cancelInvitation.mutateAsync(invitationId);
-				toast.success(m.invitations_cancelSuccess());
-			} catch (err) {
-				toast.error(err instanceof Error ? err.message : m.errors_genericError());
-			}
+	const handleCancelInvitation = (invitationId: string) => {
+		setCancellingInvitation(invitationId);
+	};
+
+	const confirmCancelInvitation = async () => {
+		if (!cancellingInvitation) return;
+		try {
+			await cancelInvitation.mutateAsync(cancellingInvitation);
+			toast.success(m.invitations_cancelSuccess());
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : m.errors_genericError());
 		}
 	};
 
@@ -283,20 +289,20 @@ function GroupDetailContent({
 					{m.groups_backToGroups()}
 				</a>
 
-				<div className="flex items-start justify-between gap-4">
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="flex items-center gap-3">
-						<div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+						<div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
 							<Users className="size-6 text-primary" />
 						</div>
-						<div>
-							<h1 className="text-2xl font-bold">{group.name}</h1>
+						<div className="min-w-0">
+							<h1 className="truncate text-2xl font-bold">{group.name}</h1>
 							{group.description && (
-								<p className="text-muted-foreground">{group.description}</p>
+								<p className="line-clamp-2 text-muted-foreground">{group.description}</p>
 							)}
 						</div>
 					</div>
 
-					<div className="flex gap-2">
+					<div className="flex shrink-0 gap-2">
 						{currentUserRole === "owner" && (
 							<Button
 								variant="outline"
@@ -377,6 +383,24 @@ function GroupDetailContent({
 				open={inviteDialogOpen}
 				onOpenChange={setInviteDialogOpen}
 				groupId={group.id}
+			/>
+			<ConfirmDialog
+				open={!!removingMember}
+				onOpenChange={(open) => !open && setRemovingMember(null)}
+				title={
+					removingMember?.isCurrentUser
+						? m.groups_leaveConfirm()
+						: m.groups_removeConfirm({ name: removingMember?.name ?? "" })
+				}
+				onConfirm={confirmRemoveMember}
+				destructive
+			/>
+			<ConfirmDialog
+				open={!!cancellingInvitation}
+				onOpenChange={(open) => !open && setCancellingInvitation(null)}
+				title={m.invitations_cancelInvitation()}
+				onConfirm={confirmCancelInvitation}
+				destructive
 			/>
 		</div>
 	);

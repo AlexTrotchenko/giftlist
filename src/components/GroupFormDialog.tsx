@@ -119,7 +119,7 @@ export function GroupFormDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-[425px]">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
 						<DialogTitle>{isEditing ? m.groups_editGroup() : m.groups_createGroup()}</DialogTitle>

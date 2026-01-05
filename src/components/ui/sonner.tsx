@@ -10,14 +10,14 @@ import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 type Theme = "light" | "dark"
 
-function useTheme(): Theme | null {
-  // Start with null to avoid hydration mismatch (server doesn't know localStorage)
-  const [theme, setTheme] = useState<Theme | null>(null)
+function useTheme(): Theme {
+  // Default to dark to ensure Toaster always renders (prevents lost toasts during hydration)
+  const [theme, setTheme] = useState<Theme>("dark")
 
   useEffect(() => {
-    // Initial theme from localStorage or default to dark
-    const savedMode = (localStorage.getItem("color-mode") as Theme) || "dark"
-    setTheme(savedMode)
+    // Sync with actual theme from localStorage or document class
+    const isDark = document.documentElement.classList.contains("dark")
+    setTheme(isDark ? "dark" : "light")
 
     // Watch for theme changes via MutationObserver on the html element
     const observer = new MutationObserver(() => {
@@ -39,13 +39,10 @@ function useTheme(): Theme | null {
 const Toaster = ({ ...props }: ToasterProps) => {
   const theme = useTheme()
 
-  // Don't render until we know the theme (prevents hydration mismatch)
-  if (theme === null) return null
-
   return (
     <Sonner
       theme={theme}
-      className="toaster group"
+      className="toaster group pointer-events-auto !z-[100]"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,

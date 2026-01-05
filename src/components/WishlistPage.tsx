@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gift, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ItemCard } from "@/components/ItemCard";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
@@ -52,7 +53,7 @@ function EmptyState({ onAddItem, onQuickAdd }: { onAddItem: () => void; onQuickA
 function LoadingSkeleton() {
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
-			<div className="mb-6 flex items-center justify-between">
+			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="h-8 w-32 animate-pulse rounded bg-muted" />
 				<div className="flex gap-2">
 					<div className="h-9 w-24 animate-pulse rounded bg-muted" />
@@ -76,6 +77,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	const [editingItem, setEditingItem] = useState<Item | null>(null);
 	const [quickAddOpen, setQuickAddOpen] = useState(false);
 	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
+	const [deletingItem, setDeletingItem] = useState<Item | null>(null);
 
 	const handleAddItem = () => {
 		setEditingItem(null);
@@ -89,14 +91,17 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		setDialogOpen(true);
 	};
 
-	const handleDeleteItem = async (item: Item) => {
-		if (window.confirm(m.wishlist_deleteConfirm({ name: item.name }))) {
-			toast.promise(deleteItem.mutateAsync(item.id), {
-				loading: m.item_deletingItem(),
-				success: m.item_deleteSuccess(),
-				error: (err) => err.message || m.errors_failedToSave(),
-			});
-		}
+	const handleDeleteItem = (item: Item) => {
+		setDeletingItem(item);
+	};
+
+	const confirmDeleteItem = () => {
+		if (!deletingItem) return;
+		toast.promise(deleteItem.mutateAsync(deletingItem.id), {
+			loading: m.item_deletingItem(),
+			success: m.item_deleteSuccess(),
+			error: (err) => err.message || m.errors_failedToSave(),
+		});
 	};
 
 	const handleExtractComplete = (data: ExtractedData) => {
@@ -131,13 +136,20 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					onOpenChange={setQuickAddOpen}
 					onExtractComplete={handleExtractComplete}
 				/>
+				<ConfirmDialog
+					open={!!deletingItem}
+					onOpenChange={(open) => !open && setDeletingItem(null)}
+					title={m.wishlist_deleteConfirm({ name: deletingItem?.name ?? "" })}
+					onConfirm={confirmDeleteItem}
+					destructive
+				/>
 			</div>
 		);
 	}
 
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
-			<div className="mb-6 flex items-center justify-between">
+			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.wishlist_title()}</h1>
 				<div className="flex gap-2">
 					<Button variant="outline" onClick={() => setQuickAddOpen(true)}>
@@ -172,6 +184,13 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 				open={quickAddOpen}
 				onOpenChange={setQuickAddOpen}
 				onExtractComplete={handleExtractComplete}
+			/>
+			<ConfirmDialog
+				open={!!deletingItem}
+				onOpenChange={(open) => !open && setDeletingItem(null)}
+				title={m.wishlist_deleteConfirm({ name: deletingItem?.name ?? "" })}
+				onConfirm={confirmDeleteItem}
+				destructive
 			/>
 		</div>
 	);

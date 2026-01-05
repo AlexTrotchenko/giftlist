@@ -78,7 +78,12 @@ export function RecipientsPicker({
 						<ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
 					</Button>
 				</PopoverTrigger>
-				<PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+				<PopoverContent
+					className="w-[var(--radix-popover-trigger-width)] p-0"
+					side="top"
+					sideOffset={4}
+					collisionPadding={16}
+				>
 					<Command>
 						<CommandInput
 							placeholder="Search groups..."

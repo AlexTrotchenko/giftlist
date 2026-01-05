@@ -142,7 +142,7 @@ export function PartialClaimDialog({
 				if (!isLoading) onOpenChange(newOpen);
 			}}
 		>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-[425px]">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
 						<DialogTitle>{m.claims_claimItem()}</DialogTitle>

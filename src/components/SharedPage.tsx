@@ -105,11 +105,11 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 			{/* My Claims section - shows items user has claimed */}
 			<MyClaimsSection />
 
-			<div className="mb-6 flex items-center justify-between">
+			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.shared_title()}</h1>
 				{groups.length > 1 && (
 					<Select value={selectedGroup} onValueChange={setSelectedGroup}>
-						<SelectTrigger className="w-[180px]">
+						<SelectTrigger className="w-full sm:w-[180px]">
 							<SelectValue placeholder={m.shared_filterByGroup()} />
 						</SelectTrigger>
 						<SelectContent>

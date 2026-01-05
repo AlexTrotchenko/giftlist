@@ -159,7 +159,7 @@ function InvitationsList() {
 			</PopoverTrigger>
 			<PopoverContent
 				align="end"
-				className="w-80 p-0"
+				className="w-[calc(100vw-2rem)] max-w-80 p-0 sm:w-80"
 				aria-label="Invitations"
 			>
 				<div className="flex items-center justify-between border-b p-3">
