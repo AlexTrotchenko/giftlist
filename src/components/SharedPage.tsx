@@ -28,7 +28,17 @@ import type { SharedItem } from "@/hooks/useSharedItems";
 import { useSharedItems } from "@/hooks/useSharedItems";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
+import { useSortedSharedItems } from "@/hooks/useSortedItems";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
+import {
+	type PriceRangeFilter,
+	type PriorityFilter,
+	isPriceRangeFilter,
+	isPriorityFilter,
+	matchesPriceRange,
+	matchesPriority,
+} from "@/lib/filters";
+import { type SharedSortOption, isSharedSortOption } from "@/lib/sorting";
 import * as m from "@/paraglide/messages";
 
 const queryClient = new QueryClient({
@@ -49,29 +59,18 @@ interface SharedPageProps {
 const ALL_GROUPS = "all";
 const ALL_OWNERS = "all";
 
-// Sort options combining key and direction for simpler UX
-type SharedSortOption =
-	| "newest"
-	| "oldest"
-	| "price-high"
-	| "price-low"
-	| "name-az"
-	| "name-za"
-	| "priority-high"
-	| "priority-low"
-	| "owner-az";
-
-// Filter types
-type PriorityFilter = "all" | "1" | "2" | "3" | "4" | "5";
-type PriceRangeFilter =
-	| "all"
-	| "under25"
-	| "25to50"
-	| "50to100"
-	| "100to250"
-	| "over250"
-	| "noPrice";
+// Claim status filter (shared-page-specific)
 type ClaimStatusFilter = "all" | "available" | "claimedByMe" | "claimedByOthers";
+const CLAIM_STATUS_FILTERS: ClaimStatusFilter[] = [
+	"all",
+	"available",
+	"claimedByMe",
+	"claimedByOthers",
+];
+
+function isClaimStatusFilter(value: unknown): value is ClaimStatusFilter {
+	return typeof value === "string" && CLAIM_STATUS_FILTERS.includes(value as ClaimStatusFilter);
+}
 
 interface SharedFilters {
 	owner: string;
@@ -87,65 +86,16 @@ const DEFAULT_FILTERS: SharedFilters = {
 	claimStatus: "all",
 };
 
-// Type guards for localStorage persistence
-const SHARED_SORT_OPTIONS: SharedSortOption[] = [
-	"newest",
-	"oldest",
-	"price-high",
-	"price-low",
-	"name-az",
-	"name-za",
-	"priority-high",
-	"priority-low",
-	"owner-az",
-];
-
-const PRIORITY_FILTERS: PriorityFilter[] = ["all", "1", "2", "3", "4", "5"];
-const PRICE_RANGE_FILTERS: PriceRangeFilter[] = [
-	"all",
-	"under25",
-	"25to50",
-	"50to100",
-	"100to250",
-	"over250",
-	"noPrice",
-];
-const CLAIM_STATUS_FILTERS: ClaimStatusFilter[] = [
-	"all",
-	"available",
-	"claimedByMe",
-	"claimedByOthers",
-];
-
-function isSharedSortOption(value: unknown): value is SharedSortOption {
-	return typeof value === "string" && SHARED_SORT_OPTIONS.includes(value as SharedSortOption);
-}
-
 function isSharedFilters(value: unknown): value is SharedFilters {
 	if (typeof value !== "object" || value === null) return false;
 	const obj = value as Record<string, unknown>;
 	return (
 		typeof obj.owner === "string" &&
-		typeof obj.priority === "string" &&
-		PRIORITY_FILTERS.includes(obj.priority as PriorityFilter) &&
-		typeof obj.priceRange === "string" &&
-		PRICE_RANGE_FILTERS.includes(obj.priceRange as PriceRangeFilter) &&
-		typeof obj.claimStatus === "string" &&
-		CLAIM_STATUS_FILTERS.includes(obj.claimStatus as ClaimStatusFilter)
+		isPriorityFilter(obj.priority) &&
+		isPriceRangeFilter(obj.priceRange) &&
+		isClaimStatusFilter(obj.claimStatus)
 	);
 }
-
-// Price range boundaries in cents
-const PRICE_RANGES: Record<
-	Exclude<PriceRangeFilter, "all" | "noPrice">,
-	{ min: number; max: number }
-> = {
-	under25: { min: 0, max: 2499 },
-	"25to50": { min: 2500, max: 5000 },
-	"50to100": { min: 5001, max: 10000 },
-	"100to250": { min: 10001, max: 25000 },
-	over250: { min: 25001, max: Number.POSITIVE_INFINITY },
-};
 
 function EmptyState() {
 	return (
@@ -297,25 +247,12 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 			}
 
 			// Priority filter
-			if (filters.priority !== "all") {
-				const targetPriority = Number.parseInt(filters.priority, 10);
-				if (sharedItem.item.priority !== targetPriority) return false;
-			}
+			if (!matchesPriority(sharedItem.item.priority, filters.priority)) return false;
 
 			// Price range filter
-			if (filters.priceRange !== "all") {
-				if (filters.priceRange === "noPrice") {
-					if (sharedItem.item.price != null) return false;
-				} else {
-					if (sharedItem.item.price == null) return false;
-					const range = PRICE_RANGES[filters.priceRange];
-					if (sharedItem.item.price < range.min || sharedItem.item.price > range.max) {
-						return false;
-					}
-				}
-			}
+			if (!matchesPriceRange(sharedItem.item.price, filters.priceRange)) return false;
 
-			// Claim status filter
+			// Claim status filter (shared-page-specific)
 			if (filters.claimStatus !== "all") {
 				const hasClaims = sharedItem.claims.length > 0;
 				const isClaimedByMe = sharedItem.claims.some(
@@ -342,58 +279,8 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 		});
 	}, [items, selectedGroup, filters, currentUserId]);
 
-	// Sort filtered items based on selected sort option
-	const sortedItems = useMemo(() => {
-		const sorted = [...filteredItems];
-		return sorted.sort((a, b) => {
-			switch (sortBy) {
-				case "newest":
-					return (
-						new Date(b.item.createdAt ?? 0).getTime() -
-						new Date(a.item.createdAt ?? 0).getTime()
-					);
-				case "oldest":
-					return (
-						new Date(a.item.createdAt ?? 0).getTime() -
-						new Date(b.item.createdAt ?? 0).getTime()
-					);
-				case "price-high":
-					// Items without price go to the end
-					if (a.item.price == null && b.item.price == null) return 0;
-					if (a.item.price == null) return 1;
-					if (b.item.price == null) return -1;
-					return b.item.price - a.item.price;
-				case "price-low":
-					// Items without price go to the end
-					if (a.item.price == null && b.item.price == null) return 0;
-					if (a.item.price == null) return 1;
-					if (b.item.price == null) return -1;
-					return a.item.price - b.item.price;
-				case "name-az":
-					return a.item.name.localeCompare(b.item.name);
-				case "name-za":
-					return b.item.name.localeCompare(a.item.name);
-				case "priority-high":
-					// Items without priority go to the end
-					if (a.item.priority == null && b.item.priority == null) return 0;
-					if (a.item.priority == null) return 1;
-					if (b.item.priority == null) return -1;
-					return b.item.priority - a.item.priority;
-				case "priority-low":
-					// Items without priority go to the end
-					if (a.item.priority == null && b.item.priority == null) return 0;
-					if (a.item.priority == null) return 1;
-					if (b.item.priority == null) return -1;
-					return a.item.priority - b.item.priority;
-				case "owner-az":
-					const aName = a.owner.name ?? a.owner.email;
-					const bName = b.owner.name ?? b.owner.email;
-					return aName.localeCompare(bName);
-				default:
-					return 0;
-			}
-		});
-	}, [filteredItems, sortBy]);
+	// Sort filtered items using shared hook
+	const sortedItems = useSortedSharedItems(filteredItems, sortBy);
 
 	// No items at all
 	if (items.length === 0) {

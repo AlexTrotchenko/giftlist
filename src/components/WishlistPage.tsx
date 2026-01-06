@@ -19,32 +19,29 @@ import { useGroups } from "@/hooks/useGroups";
 import { useDeleteItem, useItems } from "@/hooks/useItems";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
+import { useSortedWishlistItems } from "@/hooks/useSortedItems";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
 import type { Item } from "@/lib/api";
+import {
+	type PriceRangeFilter,
+	type PriorityFilter,
+	PRICE_RANGE_FILTERS,
+	PRIORITY_FILTERS,
+	isPriceRangeFilter,
+	isPriorityFilter,
+	matchesPriceRange,
+	matchesPriority,
+} from "@/lib/filters";
+import { type WishlistSortOption, isWishlistSortOption } from "@/lib/sorting";
 import * as m from "@/paraglide/messages";
 
-// Sort options combining key and direction for simpler UX
-type SortOption =
-	| "newest"
-	| "oldest"
-	| "price-high"
-	| "price-low"
-	| "name-az"
-	| "name-za"
-	| "priority-high"
-	| "priority-low";
-
-// Filter types
-type PriorityFilter = "all" | "1" | "2" | "3" | "4" | "5";
-type PriceRangeFilter =
-	| "all"
-	| "under25"
-	| "25to50"
-	| "50to100"
-	| "100to250"
-	| "over250"
-	| "noPrice";
+// Link filter (wishlist-specific)
 type LinkFilter = "all" | "with" | "without";
+const LINK_FILTERS: LinkFilter[] = ["all", "with", "without"];
+
+function isLinkFilter(value: unknown): value is LinkFilter {
+	return typeof value === "string" && LINK_FILTERS.includes(value as LinkFilter);
+}
 
 interface WishlistFilters {
 	priority: PriorityFilter;
@@ -58,58 +55,15 @@ const DEFAULT_FILTERS: WishlistFilters = {
 	link: "all",
 };
 
-// Type guards for localStorage persistence
-const SORT_OPTIONS: SortOption[] = [
-	"newest",
-	"oldest",
-	"price-high",
-	"price-low",
-	"name-az",
-	"name-za",
-	"priority-high",
-	"priority-low",
-];
-
-const PRIORITY_FILTERS: PriorityFilter[] = ["all", "1", "2", "3", "4", "5"];
-const PRICE_RANGE_FILTERS: PriceRangeFilter[] = [
-	"all",
-	"under25",
-	"25to50",
-	"50to100",
-	"100to250",
-	"over250",
-	"noPrice",
-];
-const LINK_FILTERS: LinkFilter[] = ["all", "with", "without"];
-
-function isSortOption(value: unknown): value is SortOption {
-	return typeof value === "string" && SORT_OPTIONS.includes(value as SortOption);
-}
-
 function isWishlistFilters(value: unknown): value is WishlistFilters {
 	if (typeof value !== "object" || value === null) return false;
 	const obj = value as Record<string, unknown>;
 	return (
-		typeof obj.priority === "string" &&
-		PRIORITY_FILTERS.includes(obj.priority as PriorityFilter) &&
-		typeof obj.priceRange === "string" &&
-		PRICE_RANGE_FILTERS.includes(obj.priceRange as PriceRangeFilter) &&
-		typeof obj.link === "string" &&
-		LINK_FILTERS.includes(obj.link as LinkFilter)
+		isPriorityFilter(obj.priority) &&
+		isPriceRangeFilter(obj.priceRange) &&
+		isLinkFilter(obj.link)
 	);
 }
-
-// Price range boundaries in cents
-const PRICE_RANGES: Record<
-	Exclude<PriceRangeFilter, "all" | "noPrice">,
-	{ min: number; max: number }
-> = {
-	under25: { min: 0, max: 2499 },
-	"25to50": { min: 2500, max: 5000 },
-	"50to100": { min: 5001, max: 10000 },
-	"100to250": { min: 10001, max: 25000 },
-	over250: { min: 25001, max: Number.POSITIVE_INFINITY },
-};
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -196,10 +150,10 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	const [quickAddOpen, setQuickAddOpen] = useState(false);
 	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
 	const [deletingItem, setDeletingItem] = useState<Item | null>(null);
-	const [sortBy, setSortBy] = useLocalStorage<SortOption>(
+	const [sortBy, setSortBy] = useLocalStorage<WishlistSortOption>(
 		"wishlist-sort",
 		"newest",
-		isSortOption,
+		isWishlistSortOption,
 	);
 	const [filters, setFilters] = useLocalStorage<WishlistFilters>(
 		"wishlist-filters",
@@ -228,23 +182,12 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	const filteredItems = useMemo(() => {
 		return items.filter((item) => {
 			// Priority filter
-			if (filters.priority !== "all") {
-				const targetPriority = Number.parseInt(filters.priority, 10);
-				if (item.priority !== targetPriority) return false;
-			}
+			if (!matchesPriority(item.priority, filters.priority)) return false;
 
 			// Price range filter
-			if (filters.priceRange !== "all") {
-				if (filters.priceRange === "noPrice") {
-					if (item.price != null) return false;
-				} else {
-					if (item.price == null) return false;
-					const range = PRICE_RANGES[filters.priceRange];
-					if (item.price < range.min || item.price > range.max) return false;
-				}
-			}
+			if (!matchesPriceRange(item.price, filters.priceRange)) return false;
 
-			// Link filter
+			// Link filter (wishlist-specific)
 			if (filters.link !== "all") {
 				const hasLink = item.url != null && item.url.trim() !== "";
 				if (filters.link === "with" && !hasLink) return false;
@@ -255,54 +198,8 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		});
 	}, [items, filters]);
 
-	// Sort filtered items based on selected sort option
-	const sortedItems = useMemo(() => {
-		const sorted = [...filteredItems];
-		return sorted.sort((a, b) => {
-			switch (sortBy) {
-				case "newest":
-					return (
-						new Date(b.createdAt ?? 0).getTime() -
-						new Date(a.createdAt ?? 0).getTime()
-					);
-				case "oldest":
-					return (
-						new Date(a.createdAt ?? 0).getTime() -
-						new Date(b.createdAt ?? 0).getTime()
-					);
-				case "price-high":
-					// Items without price go to the end
-					if (a.price == null && b.price == null) return 0;
-					if (a.price == null) return 1;
-					if (b.price == null) return -1;
-					return b.price - a.price;
-				case "price-low":
-					// Items without price go to the end
-					if (a.price == null && b.price == null) return 0;
-					if (a.price == null) return 1;
-					if (b.price == null) return -1;
-					return a.price - b.price;
-				case "name-az":
-					return a.name.localeCompare(b.name);
-				case "name-za":
-					return b.name.localeCompare(a.name);
-				case "priority-high":
-					// Items without priority go to the end
-					if (a.priority == null && b.priority == null) return 0;
-					if (a.priority == null) return 1;
-					if (b.priority == null) return -1;
-					return b.priority - a.priority;
-				case "priority-low":
-					// Items without priority go to the end
-					if (a.priority == null && b.priority == null) return 0;
-					if (a.priority == null) return 1;
-					if (b.priority == null) return -1;
-					return a.priority - b.priority;
-				default:
-					return 0;
-			}
-		});
-	}, [filteredItems, sortBy]);
+	// Sort filtered items using shared hook
+	const sortedItems = useSortedWishlistItems(filteredItems, sortBy);
 
 	const handleAddItem = () => {
 		setEditingItem(null);
@@ -392,7 +289,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.wishlist_title()}</h1>
 				<div className="flex flex-wrap items-center gap-2">
-					<Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+					<Select value={sortBy} onValueChange={(value) => setSortBy(value as WishlistSortOption)}>
 						<SelectTrigger className="w-full sm:w-[180px]">
 							<SelectValue placeholder={m.wishlist_sortBy()} />
 						</SelectTrigger>
