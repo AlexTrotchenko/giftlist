@@ -13,6 +13,7 @@ import { useCallback, useMemo, useState } from "react";
 import { FilterSelect } from "@/components/FilterSelect";
 import { GroupFilterBadges } from "@/components/GroupFilterBadges";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
+import { MobileFiltersSheet } from "@/components/MobileFiltersSheet";
 import { MyClaimsSection } from "@/components/MyClaimsSection";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
@@ -348,7 +349,96 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 
 			{/* Filter controls */}
 			<div className="mb-6 flex flex-wrap items-center gap-2">
-				<div className="flex items-center gap-1.5 pr-2">
+				{/* Mobile: Filter sheet trigger */}
+				<MobileFiltersSheet
+					activeFilterCount={activeFilterCount}
+					hasActiveFilters={hasActiveFilters}
+					onClearFilters={clearFilters}
+				>
+					{owners.length > 1 && (
+						<FilterSelect
+							value={filters.owner}
+							onValueChange={(value) =>
+								setFilters((f) => ({ ...f, owner: value }))
+							}
+							icon={<User className={`mr-2 size-4 ${filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />}
+							placeholder={m.shared_filterOwner()}
+							isActive={filters.owner !== ALL_OWNERS}
+							onClear={() => setFilters((f) => ({ ...f, owner: ALL_OWNERS }))}
+							clearLabel={m.shared_clearOwnerFilter()}
+							className="w-full"
+						>
+							<SelectItem value={ALL_OWNERS}>{m.shared_filterOwnerAll()}</SelectItem>
+							{owners.map((owner) => (
+								<SelectItem key={owner.id} value={owner.id}>
+									{owner.name}
+								</SelectItem>
+							))}
+						</FilterSelect>
+					)}
+
+					<FilterSelect
+						value={filters.priority}
+						onValueChange={(value) =>
+							setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
+						}
+						icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+						placeholder={m.shared_filterPriority()}
+						isActive={filters.priority !== "all"}
+						onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
+						clearLabel={m.shared_clearPriorityFilter()}
+						className="w-full"
+					>
+						<SelectItem value="all">{m.shared_filterPriorityAll()}</SelectItem>
+						<SelectItem value="5">{m.shared_filterPriorityStars({ count: "5" })}</SelectItem>
+						<SelectItem value="4">{m.shared_filterPriorityStars({ count: "4" })}</SelectItem>
+						<SelectItem value="3">{m.shared_filterPriorityStars({ count: "3" })}</SelectItem>
+						<SelectItem value="2">{m.shared_filterPriorityStars({ count: "2" })}</SelectItem>
+						<SelectItem value="1">{m.shared_filterPriorityStars({ count: "1" })}</SelectItem>
+					</FilterSelect>
+
+					<FilterSelect
+						value={filters.priceRange}
+						onValueChange={(value) =>
+							setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
+						}
+						icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+						placeholder={m.shared_filterPrice()}
+						isActive={filters.priceRange !== "all"}
+						onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
+						clearLabel={m.shared_clearPriceFilter()}
+						className="w-full"
+					>
+						<SelectItem value="all">{m.shared_filterPriceAll()}</SelectItem>
+						<SelectItem value="under25">{m.shared_filterPriceUnder25()}</SelectItem>
+						<SelectItem value="25to50">{m.shared_filterPrice25to50()}</SelectItem>
+						<SelectItem value="50to100">{m.shared_filterPrice50to100()}</SelectItem>
+						<SelectItem value="100to250">{m.shared_filterPrice100to250()}</SelectItem>
+						<SelectItem value="over250">{m.shared_filterPriceOver250()}</SelectItem>
+						<SelectItem value="noPrice">{m.shared_filterPriceNoPrice()}</SelectItem>
+					</FilterSelect>
+
+					<FilterSelect
+						value={filters.claimStatus}
+						onValueChange={(value) =>
+							setFilters((f) => ({ ...f, claimStatus: value as ClaimStatusFilter }))
+						}
+						icon={<ShoppingCart className={`mr-2 size-4 ${filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />}
+						placeholder={m.shared_filterClaimStatus()}
+						isActive={filters.claimStatus !== "all"}
+						onClear={() => setFilters((f) => ({ ...f, claimStatus: "all" }))}
+						clearLabel={m.shared_clearClaimStatusFilter()}
+						className="w-full"
+					>
+						<SelectItem value="all">{m.shared_filterClaimStatusAll()}</SelectItem>
+						<SelectItem value="available">{m.shared_filterClaimStatusAvailable()}</SelectItem>
+						<SelectItem value="claimedByMe">{m.shared_filterClaimStatusByMe()}</SelectItem>
+						<SelectItem value="claimedByOthers">{m.shared_filterClaimStatusByOthers()}</SelectItem>
+					</FilterSelect>
+				</MobileFiltersSheet>
+
+				{/* Desktop: Inline filter controls (hidden on mobile) */}
+				<div className="hidden items-center gap-1.5 pr-2 sm:flex">
 					<Filter
 						className={`size-4 ${hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
 						aria-hidden="true"
@@ -372,6 +462,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						isActive={filters.owner !== ALL_OWNERS}
 						onClear={() => setFilters((f) => ({ ...f, owner: ALL_OWNERS }))}
 						clearLabel={m.shared_clearOwnerFilter()}
+						className="hidden sm:flex"
 					>
 						<SelectItem value={ALL_OWNERS}>{m.shared_filterOwnerAll()}</SelectItem>
 						{owners.map((owner) => (
@@ -392,6 +483,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					isActive={filters.priority !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
 					clearLabel={m.shared_clearPriorityFilter()}
+					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.shared_filterPriorityAll()}</SelectItem>
 					<SelectItem value="5">{m.shared_filterPriorityStars({ count: "5" })}</SelectItem>
@@ -411,6 +503,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					isActive={filters.priceRange !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
 					clearLabel={m.shared_clearPriceFilter()}
+					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.shared_filterPriceAll()}</SelectItem>
 					<SelectItem value="under25">{m.shared_filterPriceUnder25()}</SelectItem>
@@ -431,6 +524,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					isActive={filters.claimStatus !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, claimStatus: "all" }))}
 					clearLabel={m.shared_clearClaimStatusFilter()}
+					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.shared_filterClaimStatusAll()}</SelectItem>
 					<SelectItem value="available">{m.shared_filterClaimStatusAvailable()}</SelectItem>
@@ -439,7 +533,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 				</FilterSelect>
 
 				{hasActiveFilters && (
-					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+					<Button variant="ghost" size="sm" onClick={clearFilters} className="hidden gap-1 sm:flex">
 						<X className="size-3" />
 						{m.shared_clearFilters()}
 					</Button>

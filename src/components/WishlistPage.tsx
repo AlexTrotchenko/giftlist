@@ -319,7 +319,73 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 
 			{/* Filter controls */}
 			<div className="mb-6 flex flex-wrap items-center gap-2">
-				<div className="flex items-center gap-1.5 pr-2">
+				{/* Mobile: Filter sheet trigger */}
+				<MobileFiltersSheet
+					activeFilterCount={activeFilterCount}
+					hasActiveFilters={hasActiveFilters}
+					onClearFilters={clearFilters}
+				>
+					<FilterSelect
+						value={filters.priority}
+						onValueChange={(value) =>
+							setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
+						}
+						icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+						placeholder={m.wishlist_filterPriority()}
+						isActive={filters.priority !== "all"}
+						onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
+						clearLabel={m.wishlist_clearPriorityFilter()}
+						className="w-full"
+					>
+						<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
+						<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
+						<SelectItem value="4">{m.wishlist_filterPriorityStars({ count: "4" })}</SelectItem>
+						<SelectItem value="3">{m.wishlist_filterPriorityStars({ count: "3" })}</SelectItem>
+						<SelectItem value="2">{m.wishlist_filterPriorityStars({ count: "2" })}</SelectItem>
+						<SelectItem value="1">{m.wishlist_filterPriorityStars({ count: "1" })}</SelectItem>
+					</FilterSelect>
+
+					<FilterSelect
+						value={filters.priceRange}
+						onValueChange={(value) =>
+							setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
+						}
+						icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+						placeholder={m.wishlist_filterPrice()}
+						isActive={filters.priceRange !== "all"}
+						onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
+						clearLabel={m.wishlist_clearPriceFilter()}
+						className="w-full"
+					>
+						<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
+						<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
+						<SelectItem value="25to50">{m.wishlist_filterPrice25to50()}</SelectItem>
+						<SelectItem value="50to100">{m.wishlist_filterPrice50to100()}</SelectItem>
+						<SelectItem value="100to250">{m.wishlist_filterPrice100to250()}</SelectItem>
+						<SelectItem value="over250">{m.wishlist_filterPriceOver250()}</SelectItem>
+						<SelectItem value="noPrice">{m.wishlist_filterPriceNoPrice()}</SelectItem>
+					</FilterSelect>
+
+					<FilterSelect
+						value={filters.link}
+						onValueChange={(value) =>
+							setFilters((f) => ({ ...f, link: value as LinkFilter }))
+						}
+						icon={<Link2 className={`mr-2 size-4 ${filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
+						placeholder={m.wishlist_filterLink()}
+						isActive={filters.link !== "all"}
+						onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
+						clearLabel={m.wishlist_clearLinkFilter()}
+						className="w-full"
+					>
+						<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
+						<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
+						<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
+					</FilterSelect>
+				</MobileFiltersSheet>
+
+				{/* Desktop: Inline filter controls (hidden on mobile) */}
+				<div className="hidden items-center gap-1.5 pr-2 sm:flex">
 					<Filter
 						className={`size-4 ${hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
 						aria-hidden="true"
@@ -342,6 +408,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					isActive={filters.priority !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
 					clearLabel={m.wishlist_clearPriorityFilter()}
+					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
 					<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
@@ -361,6 +428,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					isActive={filters.priceRange !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
 					clearLabel={m.wishlist_clearPriceFilter()}
+					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
 					<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
@@ -381,6 +449,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					isActive={filters.link !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
 					clearLabel={m.wishlist_clearLinkFilter()}
+					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
 					<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
@@ -388,7 +457,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 				</FilterSelect>
 
 				{hasActiveFilters && (
-					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+					<Button variant="ghost" size="sm" onClick={clearFilters} className="hidden gap-1 sm:flex">
 						<X className="size-3" />
 						{m.wishlist_clearFilters()}
 					</Button>
