@@ -54,6 +54,7 @@
   "item_image": "Image",
   "item_shareWith": "Share with",
   "item_editAriaLabel": "Edit {name}",
+  "item_shareAriaLabel": "Share {name}",
   "item_deleteAriaLabel": "Delete {name}",
   "item_priceLabel": "Price ({currency})",
   "item_quickAdd": "Quick Add",
