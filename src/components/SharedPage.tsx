@@ -1,5 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Filter, Gift, X } from "lucide-react";
+import {
+	ArrowUpDown,
+	DollarSign,
+	Filter,
+	Gift,
+	ShoppingCart,
+	Star,
+	User,
+	Users,
+	X,
+} from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { MyClaimsSection } from "@/components/MyClaimsSection";
@@ -185,7 +195,10 @@ function FilteredEmptyState({ onClearFilters }: { onClearFilters: () => void }) 
 
 function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "locale">) {
 	const { data: items = [] } = useSharedItems(initialItems);
-	const [selectedGroup, setSelectedGroup] = useState<string>(ALL_GROUPS);
+	const [selectedGroup, setSelectedGroup] = useLocalStorage<string>(
+		"shared-group",
+		ALL_GROUPS,
+	);
 	const [sortBy, setSortBy] = useLocalStorage<SharedSortOption>(
 		"shared-sort",
 		"newest",
@@ -417,6 +430,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					{groups.length > 1 && (
 						<Select value={selectedGroup} onValueChange={setSelectedGroup}>
 							<SelectTrigger className="w-full sm:w-[180px]">
+								<Users className="mr-2 size-4 opacity-50" />
 								<SelectValue placeholder={m.shared_filterByGroup()} />
 							</SelectTrigger>
 							<SelectContent>
@@ -434,6 +448,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						onValueChange={(value) => setSortBy(value as SharedSortOption)}
 					>
 						<SelectTrigger className="w-full sm:w-[180px]">
+							<ArrowUpDown className="mr-2 size-4 opacity-50" />
 							<SelectValue placeholder={m.shared_sortBy()} />
 						</SelectTrigger>
 						<SelectContent>
@@ -461,6 +476,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						}
 					>
 						<SelectTrigger className="w-full sm:w-[150px]">
+							<User className="mr-2 size-4 opacity-50" />
 							<SelectValue placeholder={m.shared_filterOwner()} />
 						</SelectTrigger>
 						<SelectContent>
@@ -481,6 +497,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
+						<Star className="mr-2 size-4 opacity-50" />
 						<SelectValue placeholder={m.shared_filterPriority()} />
 					</SelectTrigger>
 					<SelectContent>
@@ -500,6 +517,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
+						<DollarSign className="mr-2 size-4 opacity-50" />
 						<SelectValue placeholder={m.shared_filterPrice()} />
 					</SelectTrigger>
 					<SelectContent>
@@ -520,6 +538,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
+						<ShoppingCart className="mr-2 size-4 opacity-50" />
 						<SelectValue placeholder={m.shared_filterClaimStatus()} />
 					</SelectTrigger>
 					<SelectContent>
