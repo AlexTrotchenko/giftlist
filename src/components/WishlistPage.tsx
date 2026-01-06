@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useGroups } from "@/hooks/useGroups";
 import { useDeleteItem, useItems } from "@/hooks/useItems";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
 import type { Item } from "@/lib/api";
@@ -56,6 +57,47 @@ const DEFAULT_FILTERS: WishlistFilters = {
 	priceRange: "all",
 	link: "all",
 };
+
+// Type guards for localStorage persistence
+const SORT_OPTIONS: SortOption[] = [
+	"newest",
+	"oldest",
+	"price-high",
+	"price-low",
+	"name-az",
+	"name-za",
+	"priority-high",
+	"priority-low",
+];
+
+const PRIORITY_FILTERS: PriorityFilter[] = ["all", "1", "2", "3", "4", "5"];
+const PRICE_RANGE_FILTERS: PriceRangeFilter[] = [
+	"all",
+	"under25",
+	"25to50",
+	"50to100",
+	"100to250",
+	"over250",
+	"noPrice",
+];
+const LINK_FILTERS: LinkFilter[] = ["all", "with", "without"];
+
+function isSortOption(value: unknown): value is SortOption {
+	return typeof value === "string" && SORT_OPTIONS.includes(value as SortOption);
+}
+
+function isWishlistFilters(value: unknown): value is WishlistFilters {
+	if (typeof value !== "object" || value === null) return false;
+	const obj = value as Record<string, unknown>;
+	return (
+		typeof obj.priority === "string" &&
+		PRIORITY_FILTERS.includes(obj.priority as PriorityFilter) &&
+		typeof obj.priceRange === "string" &&
+		PRICE_RANGE_FILTERS.includes(obj.priceRange as PriceRangeFilter) &&
+		typeof obj.link === "string" &&
+		LINK_FILTERS.includes(obj.link as LinkFilter)
+	);
+}
 
 // Price range boundaries in cents
 const PRICE_RANGES: Record<
@@ -154,8 +196,16 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	const [quickAddOpen, setQuickAddOpen] = useState(false);
 	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
 	const [deletingItem, setDeletingItem] = useState<Item | null>(null);
-	const [sortBy, setSortBy] = useState<SortOption>("newest");
-	const [filters, setFilters] = useState<WishlistFilters>(DEFAULT_FILTERS);
+	const [sortBy, setSortBy] = useLocalStorage<SortOption>(
+		"wishlist-sort",
+		"newest",
+		isSortOption,
+	);
+	const [filters, setFilters] = useLocalStorage<WishlistFilters>(
+		"wishlist-filters",
+		DEFAULT_FILTERS,
+		isWishlistFilters,
+	);
 
 	// Count active filters
 	const activeFilterCount = useMemo(() => {
