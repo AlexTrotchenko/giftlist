@@ -164,10 +164,18 @@ export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-8"
+								className="relative size-8"
 								aria-label={m.item_shareAriaLabel({ name: item.name })}
 							>
 								<Share2 className="size-4" />
+								{recipients.length > 0 && (
+									<span
+										className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground"
+										aria-label={m.item_sharedWithCount({ count: recipients.length })}
+									>
+										{recipients.length}
+									</span>
+								)}
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent

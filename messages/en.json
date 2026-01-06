@@ -56,6 +56,7 @@
   "item_editAriaLabel": "Edit {name}",
   "item_shareAriaLabel": "Share {name}",
   "item_deleteAriaLabel": "Delete {name}",
+  "item_sharedWithCount": "Shared with {count} groups",
   "item_priceLabel": "Price ({currency})",
   "item_quickAdd": "Quick Add",
   "item_quickAddDescription": "Enter a product URL to quickly add an item to your wishlist.",
