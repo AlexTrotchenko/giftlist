@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Gift, Plus } from "lucide-react";
+import { Filter, Gift, Plus, X } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -32,6 +32,42 @@ type SortOption =
 	| "name-za"
 	| "priority-high"
 	| "priority-low";
+
+// Filter types
+type PriorityFilter = "all" | "1" | "2" | "3" | "4" | "5";
+type PriceRangeFilter =
+	| "all"
+	| "under25"
+	| "25to50"
+	| "50to100"
+	| "100to250"
+	| "over250"
+	| "noPrice";
+type LinkFilter = "all" | "with" | "without";
+
+interface WishlistFilters {
+	priority: PriorityFilter;
+	priceRange: PriceRangeFilter;
+	link: LinkFilter;
+}
+
+const DEFAULT_FILTERS: WishlistFilters = {
+	priority: "all",
+	priceRange: "all",
+	link: "all",
+};
+
+// Price range boundaries in cents
+const PRICE_RANGES: Record<
+	Exclude<PriceRangeFilter, "all" | "noPrice">,
+	{ min: number; max: number }
+> = {
+	under25: { min: 0, max: 2499 },
+	"25to50": { min: 2500, max: 5000 },
+	"50to100": { min: 5001, max: 10000 },
+	"100to250": { min: 10001, max: 25000 },
+	over250: { min: 25001, max: Number.POSITIVE_INFINITY },
+};
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -71,6 +107,24 @@ function EmptyState({ onAddItem, onQuickAdd }: { onAddItem: () => void; onQuickA
 	);
 }
 
+function FilteredEmptyState({ onClearFilters }: { onClearFilters: () => void }) {
+	return (
+		<div className="flex flex-col items-center justify-center py-16 text-center">
+			<div className="mb-4 rounded-full bg-muted p-4">
+				<Filter className="size-8 text-muted-foreground" />
+			</div>
+			<h2 className="mb-2 text-xl font-semibold">{m.wishlist_noFilteredItems()}</h2>
+			<p className="mb-6 max-w-sm text-muted-foreground">
+				{m.wishlist_noFilteredItemsDescription()}
+			</p>
+			<Button variant="outline" onClick={onClearFilters}>
+				<X className="size-4" />
+				{m.wishlist_clearFilters()}
+			</Button>
+		</div>
+	);
+}
+
 function LoadingSkeleton() {
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
@@ -101,10 +155,59 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
 	const [deletingItem, setDeletingItem] = useState<Item | null>(null);
 	const [sortBy, setSortBy] = useState<SortOption>("newest");
+	const [filters, setFilters] = useState<WishlistFilters>(DEFAULT_FILTERS);
 
-	// Sort items based on selected sort option
+	// Count active filters
+	const activeFilterCount = useMemo(() => {
+		let count = 0;
+		if (filters.priority !== "all") count++;
+		if (filters.priceRange !== "all") count++;
+		if (filters.link !== "all") count++;
+		return count;
+	}, [filters]);
+
+	// Check if any filters are active
+	const hasActiveFilters = activeFilterCount > 0;
+
+	// Clear all filters
+	const clearFilters = useCallback(() => {
+		setFilters(DEFAULT_FILTERS);
+	}, []);
+
+	// Filter items based on current filters
+	const filteredItems = useMemo(() => {
+		return items.filter((item) => {
+			// Priority filter
+			if (filters.priority !== "all") {
+				const targetPriority = Number.parseInt(filters.priority, 10);
+				if (item.priority !== targetPriority) return false;
+			}
+
+			// Price range filter
+			if (filters.priceRange !== "all") {
+				if (filters.priceRange === "noPrice") {
+					if (item.price != null) return false;
+				} else {
+					if (item.price == null) return false;
+					const range = PRICE_RANGES[filters.priceRange];
+					if (item.price < range.min || item.price > range.max) return false;
+				}
+			}
+
+			// Link filter
+			if (filters.link !== "all") {
+				const hasLink = item.url != null && item.url.trim() !== "";
+				if (filters.link === "with" && !hasLink) return false;
+				if (filters.link === "without" && hasLink) return false;
+			}
+
+			return true;
+		});
+	}, [items, filters]);
+
+	// Sort filtered items based on selected sort option
 	const sortedItems = useMemo(() => {
-		const sorted = [...items];
+		const sorted = [...filteredItems];
 		return sorted.sort((a, b) => {
 			switch (sortBy) {
 				case "newest":
@@ -149,7 +252,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					return 0;
 			}
 		});
-	}, [items, sortBy]);
+	}, [filteredItems, sortBy]);
 
 	const handleAddItem = () => {
 		setEditingItem(null);
@@ -265,17 +368,86 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 				</div>
 			</div>
 
-			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-				{sortedItems.map((item) => (
-					<ItemCard
-						key={item.id}
-						item={item}
-						groups={groups}
-						onEdit={handleEditItem}
-						onDelete={handleDeleteItem}
-					/>
-				))}
+			{/* Filter controls */}
+			<div className="mb-6 flex flex-wrap items-center gap-2">
+				<Select
+					value={filters.priority}
+					onValueChange={(value) =>
+						setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
+					}
+				>
+					<SelectTrigger className="w-full sm:w-[150px]">
+						<SelectValue placeholder={m.wishlist_filterPriority()} />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
+						<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
+						<SelectItem value="4">{m.wishlist_filterPriorityStars({ count: "4" })}</SelectItem>
+						<SelectItem value="3">{m.wishlist_filterPriorityStars({ count: "3" })}</SelectItem>
+						<SelectItem value="2">{m.wishlist_filterPriorityStars({ count: "2" })}</SelectItem>
+						<SelectItem value="1">{m.wishlist_filterPriorityStars({ count: "1" })}</SelectItem>
+					</SelectContent>
+				</Select>
+
+				<Select
+					value={filters.priceRange}
+					onValueChange={(value) =>
+						setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
+					}
+				>
+					<SelectTrigger className="w-full sm:w-[150px]">
+						<SelectValue placeholder={m.wishlist_filterPrice()} />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
+						<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
+						<SelectItem value="25to50">{m.wishlist_filterPrice25to50()}</SelectItem>
+						<SelectItem value="50to100">{m.wishlist_filterPrice50to100()}</SelectItem>
+						<SelectItem value="100to250">{m.wishlist_filterPrice100to250()}</SelectItem>
+						<SelectItem value="over250">{m.wishlist_filterPriceOver250()}</SelectItem>
+						<SelectItem value="noPrice">{m.wishlist_filterPriceNoPrice()}</SelectItem>
+					</SelectContent>
+				</Select>
+
+				<Select
+					value={filters.link}
+					onValueChange={(value) =>
+						setFilters((f) => ({ ...f, link: value as LinkFilter }))
+					}
+				>
+					<SelectTrigger className="w-full sm:w-[150px]">
+						<SelectValue placeholder={m.wishlist_filterLink()} />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
+						<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
+						<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
+					</SelectContent>
+				</Select>
+
+				{hasActiveFilters && (
+					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+						<X className="size-3" />
+						{m.wishlist_clearFilters()}
+					</Button>
+				)}
 			</div>
+
+			{sortedItems.length === 0 && hasActiveFilters ? (
+				<FilteredEmptyState onClearFilters={clearFilters} />
+			) : (
+				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					{sortedItems.map((item) => (
+						<ItemCard
+							key={item.id}
+							item={item}
+							groups={groups}
+							onEdit={handleEditItem}
+							onDelete={handleDeleteItem}
+						/>
+					))}
+				</div>
+			)}
 
 			<ItemFormDialog
 				open={dialogOpen}
