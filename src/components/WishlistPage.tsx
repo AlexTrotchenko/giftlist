@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Gift, Plus } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ItemCard } from "@/components/ItemCard";
@@ -8,12 +8,30 @@ import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
 import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useGroups } from "@/hooks/useGroups";
 import { useDeleteItem, useItems } from "@/hooks/useItems";
 import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
 import type { Item } from "@/lib/api";
 import * as m from "@/paraglide/messages";
+
+// Sort options combining key and direction for simpler UX
+type SortOption =
+	| "newest"
+	| "oldest"
+	| "price-high"
+	| "price-low"
+	| "name-az"
+	| "name-za"
+	| "priority-high"
+	| "priority-low";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -82,6 +100,56 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	const [quickAddOpen, setQuickAddOpen] = useState(false);
 	const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
 	const [deletingItem, setDeletingItem] = useState<Item | null>(null);
+	const [sortBy, setSortBy] = useState<SortOption>("newest");
+
+	// Sort items based on selected sort option
+	const sortedItems = useMemo(() => {
+		const sorted = [...items];
+		return sorted.sort((a, b) => {
+			switch (sortBy) {
+				case "newest":
+					return (
+						new Date(b.createdAt ?? 0).getTime() -
+						new Date(a.createdAt ?? 0).getTime()
+					);
+				case "oldest":
+					return (
+						new Date(a.createdAt ?? 0).getTime() -
+						new Date(b.createdAt ?? 0).getTime()
+					);
+				case "price-high":
+					// Items without price go to the end
+					if (a.price == null && b.price == null) return 0;
+					if (a.price == null) return 1;
+					if (b.price == null) return -1;
+					return b.price - a.price;
+				case "price-low":
+					// Items without price go to the end
+					if (a.price == null && b.price == null) return 0;
+					if (a.price == null) return 1;
+					if (b.price == null) return -1;
+					return a.price - b.price;
+				case "name-az":
+					return a.name.localeCompare(b.name);
+				case "name-za":
+					return b.name.localeCompare(a.name);
+				case "priority-high":
+					// Items without priority go to the end
+					if (a.priority == null && b.priority == null) return 0;
+					if (a.priority == null) return 1;
+					if (b.priority == null) return -1;
+					return b.priority - a.priority;
+				case "priority-low":
+					// Items without priority go to the end
+					if (a.priority == null && b.priority == null) return 0;
+					if (a.priority == null) return 1;
+					if (b.priority == null) return -1;
+					return a.priority - b.priority;
+				default:
+					return 0;
+			}
+		});
+	}, [items, sortBy]);
 
 	const handleAddItem = () => {
 		setEditingItem(null);
@@ -170,7 +238,22 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
 			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.wishlist_title()}</h1>
-				<div className="flex gap-2">
+				<div className="flex flex-wrap items-center gap-2">
+					<Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+						<SelectTrigger className="w-full sm:w-[180px]">
+							<SelectValue placeholder={m.wishlist_sortBy()} />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="newest">{m.wishlist_sortNewest()}</SelectItem>
+							<SelectItem value="oldest">{m.wishlist_sortOldest()}</SelectItem>
+							<SelectItem value="price-high">{m.wishlist_sortPriceHigh()}</SelectItem>
+							<SelectItem value="price-low">{m.wishlist_sortPriceLow()}</SelectItem>
+							<SelectItem value="name-az">{m.wishlist_sortNameAZ()}</SelectItem>
+							<SelectItem value="name-za">{m.wishlist_sortNameZA()}</SelectItem>
+							<SelectItem value="priority-high">{m.wishlist_sortPriorityHigh()}</SelectItem>
+							<SelectItem value="priority-low">{m.wishlist_sortPriorityLow()}</SelectItem>
+						</SelectContent>
+					</Select>
 					<Button variant="outline" onClick={openQuickAdd}>
 						<Plus className="size-4" />
 						{m.item_quickAdd()}
@@ -183,7 +266,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-				{items.map((item) => (
+				{sortedItems.map((item) => (
 					<ItemCard
 						key={item.id}
 						item={item}
