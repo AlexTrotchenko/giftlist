@@ -218,6 +218,7 @@
   "shared_noFilteredItems": "No items match filters",
   "shared_noFilteredItemsDescription": "Try adjusting your filters to see more items.",
   "shared_clearFilters": "Clear filters",
+  "shared_activeFilters": "{count} active",
 
   "time_justNow": "Just now",
   "time_minutesAgo": "{count}m ago",

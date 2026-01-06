@@ -355,6 +355,19 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 
 			{/* Filter controls */}
 			<div className="mb-6 flex flex-wrap items-center gap-2">
+				<div className="flex items-center gap-1.5 pr-2">
+					<Filter
+						className={`size-4 ${hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
+						aria-hidden="true"
+					/>
+					{hasActiveFilters && (
+						<span
+							className="size-2 rounded-full bg-primary motion-safe:animate-badge-pulse"
+							role="status"
+							aria-label={m.shared_activeFilters({ count: activeFilterCount })}
+						/>
+					)}
+				</div>
 				{owners.length > 1 && (
 					<Select
 						value={filters.owner}
@@ -363,7 +376,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						}
 					>
 						<SelectTrigger className="w-full sm:w-[150px]">
-							<User className="mr-2 size-4 opacity-50" />
+							<User className={`mr-2 size-4 ${filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />
 							<SelectValue placeholder={m.shared_filterOwner()} />
 						</SelectTrigger>
 						<SelectContent>
@@ -384,7 +397,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
-						<Star className="mr-2 size-4 opacity-50" />
+						<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />
 						<SelectValue placeholder={m.shared_filterPriority()} />
 					</SelectTrigger>
 					<SelectContent>
@@ -404,7 +417,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
-						<DollarSign className="mr-2 size-4 opacity-50" />
+						<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />
 						<SelectValue placeholder={m.shared_filterPrice()} />
 					</SelectTrigger>
 					<SelectContent>
@@ -425,7 +438,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
-						<ShoppingCart className="mr-2 size-4 opacity-50" />
+						<ShoppingCart className={`mr-2 size-4 ${filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />
 						<SelectValue placeholder={m.shared_filterClaimStatus()} />
 					</SelectTrigger>
 					<SelectContent>

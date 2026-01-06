@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Filter, Gift, Plus, X } from "lucide-react";
+import { DollarSign, Filter, Gift, Link2, Plus, Star, X } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -317,6 +317,19 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 
 			{/* Filter controls */}
 			<div className="mb-6 flex flex-wrap items-center gap-2">
+				<div className="flex items-center gap-1.5 pr-2">
+					<Filter
+						className={`size-4 ${hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
+						aria-hidden="true"
+					/>
+					{hasActiveFilters && (
+						<span
+							className="size-2 rounded-full bg-primary motion-safe:animate-badge-pulse"
+							role="status"
+							aria-label={m.wishlist_activeFilters({ count: activeFilterCount })}
+						/>
+					)}
+				</div>
 				<Select
 					value={filters.priority}
 					onValueChange={(value) =>
@@ -324,6 +337,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
+						<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />
 						<SelectValue placeholder={m.wishlist_filterPriority()} />
 					</SelectTrigger>
 					<SelectContent>
@@ -343,6 +357,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
+						<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />
 						<SelectValue placeholder={m.wishlist_filterPrice()} />
 					</SelectTrigger>
 					<SelectContent>
@@ -363,6 +378,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					}
 				>
 					<SelectTrigger className="w-full sm:w-[150px]">
+						<Link2 className={`mr-2 size-4 ${filters.link !== "all" ? "text-primary" : "opacity-50"}`} />
 						<SelectValue placeholder={m.wishlist_filterLink()} />
 					</SelectTrigger>
 					<SelectContent>
