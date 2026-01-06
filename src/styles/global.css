@@ -131,6 +131,15 @@
   }
 }
 
+/* Hide scrollbar but keep scroll functionality */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Form validation shake animation */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

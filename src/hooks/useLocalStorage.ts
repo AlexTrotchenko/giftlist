@@ -21,7 +21,7 @@ export function useLocalStorage<T>(
 	key: string,
 	defaultValue: T,
 	typeGuard?: TypeGuard<T>,
-): [T, (value: T | ((prev: T) => T)) => void] {
+): [T, (value: T | ((prev: T) => T)) => void, boolean] {
 	// Initialize with defaultValue for SSR safety (matches server render)
 	const [storedValue, setStoredValue] = useState<T>(defaultValue);
 	const [isHydrated, setIsHydrated] = useState(false);
@@ -97,5 +97,5 @@ export function useLocalStorage<T>(
 		return () => window.removeEventListener("storage", handleStorageChange);
 	}, [key, typeGuard]);
 
-	return [storedValue, setValue];
+	return [storedValue, setValue, isHydrated];
 }
