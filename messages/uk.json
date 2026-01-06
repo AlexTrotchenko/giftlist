@@ -184,6 +184,7 @@
   "shared_noItemsInGroupDescription": "Ніхто ще не поділився елементами з {groupName}.",
   "shared_allGroups": "Усі групи",
   "shared_filterByGroup": "Фільтр за групою",
+  "shared_groupFilterBadges": "Фільтр за групою",
   "shared_myClaims": "Мої резерви ({count})",
   "shared_noActiveClaims": "Немає активних резервів",
   "shared_noActiveClaimsDescription": "Елементи, які ви зарезервуєте у друзів, з'являться тут.",

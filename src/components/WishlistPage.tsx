@@ -3,7 +3,9 @@ import { DollarSign, Filter, Gift, Link2, Plus, Star, X } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { FilterSelect } from "@/components/FilterSelect";
 import { ItemCard } from "@/components/ItemCard";
+import { MobileFiltersSheet } from "@/components/MobileFiltersSheet";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
@@ -330,63 +332,60 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 						/>
 					)}
 				</div>
-				<Select
+				<FilterSelect
 					value={filters.priority}
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
 					}
+					icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+					placeholder={m.wishlist_filterPriority()}
+					isActive={filters.priority !== "all"}
+					onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
+					clearLabel={m.wishlist_clearPriorityFilter()}
 				>
-					<SelectTrigger className="w-full sm:w-[150px]">
-						<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />
-						<SelectValue placeholder={m.wishlist_filterPriority()} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
-						<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
-						<SelectItem value="4">{m.wishlist_filterPriorityStars({ count: "4" })}</SelectItem>
-						<SelectItem value="3">{m.wishlist_filterPriorityStars({ count: "3" })}</SelectItem>
-						<SelectItem value="2">{m.wishlist_filterPriorityStars({ count: "2" })}</SelectItem>
-						<SelectItem value="1">{m.wishlist_filterPriorityStars({ count: "1" })}</SelectItem>
-					</SelectContent>
-				</Select>
+					<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
+					<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
+					<SelectItem value="4">{m.wishlist_filterPriorityStars({ count: "4" })}</SelectItem>
+					<SelectItem value="3">{m.wishlist_filterPriorityStars({ count: "3" })}</SelectItem>
+					<SelectItem value="2">{m.wishlist_filterPriorityStars({ count: "2" })}</SelectItem>
+					<SelectItem value="1">{m.wishlist_filterPriorityStars({ count: "1" })}</SelectItem>
+				</FilterSelect>
 
-				<Select
+				<FilterSelect
 					value={filters.priceRange}
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
 					}
+					icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+					placeholder={m.wishlist_filterPrice()}
+					isActive={filters.priceRange !== "all"}
+					onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
+					clearLabel={m.wishlist_clearPriceFilter()}
 				>
-					<SelectTrigger className="w-full sm:w-[150px]">
-						<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />
-						<SelectValue placeholder={m.wishlist_filterPrice()} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
-						<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
-						<SelectItem value="25to50">{m.wishlist_filterPrice25to50()}</SelectItem>
-						<SelectItem value="50to100">{m.wishlist_filterPrice50to100()}</SelectItem>
-						<SelectItem value="100to250">{m.wishlist_filterPrice100to250()}</SelectItem>
-						<SelectItem value="over250">{m.wishlist_filterPriceOver250()}</SelectItem>
-						<SelectItem value="noPrice">{m.wishlist_filterPriceNoPrice()}</SelectItem>
-					</SelectContent>
-				</Select>
+					<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
+					<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
+					<SelectItem value="25to50">{m.wishlist_filterPrice25to50()}</SelectItem>
+					<SelectItem value="50to100">{m.wishlist_filterPrice50to100()}</SelectItem>
+					<SelectItem value="100to250">{m.wishlist_filterPrice100to250()}</SelectItem>
+					<SelectItem value="over250">{m.wishlist_filterPriceOver250()}</SelectItem>
+					<SelectItem value="noPrice">{m.wishlist_filterPriceNoPrice()}</SelectItem>
+				</FilterSelect>
 
-				<Select
+				<FilterSelect
 					value={filters.link}
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, link: value as LinkFilter }))
 					}
+					icon={<Link2 className={`mr-2 size-4 ${filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
+					placeholder={m.wishlist_filterLink()}
+					isActive={filters.link !== "all"}
+					onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
+					clearLabel={m.wishlist_clearLinkFilter()}
 				>
-					<SelectTrigger className="w-full sm:w-[150px]">
-						<Link2 className={`mr-2 size-4 ${filters.link !== "all" ? "text-primary" : "opacity-50"}`} />
-						<SelectValue placeholder={m.wishlist_filterLink()} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
-						<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
-						<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
-					</SelectContent>
-				</Select>
+					<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
+					<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
+					<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
+				</FilterSelect>
 
 				{hasActiveFilters && (
 					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">

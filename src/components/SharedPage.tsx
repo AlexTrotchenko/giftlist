@@ -7,10 +7,11 @@ import {
 	ShoppingCart,
 	Star,
 	User,
-	Users,
 	X,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { FilterSelect } from "@/components/FilterSelect";
+import { GroupFilterBadges } from "@/components/GroupFilterBadges";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { MyClaimsSection } from "@/components/MyClaimsSection";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
@@ -314,22 +315,6 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.shared_title()}</h1>
 				<div className="flex flex-wrap items-center gap-2">
-					{groups.length > 1 && (
-						<Select value={selectedGroup} onValueChange={setSelectedGroup}>
-							<SelectTrigger className="w-full sm:w-[180px]">
-								<Users className="mr-2 size-4 opacity-50" />
-								<SelectValue placeholder={m.shared_filterByGroup()} />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value={ALL_GROUPS}>{m.shared_allGroups()}</SelectItem>
-								{groups.map((group) => (
-									<SelectItem key={group.id} value={group.id}>
-										{group.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					)}
 					<Select
 						value={sortBy}
 						onValueChange={(value) => setSortBy(value as SharedSortOption)}
@@ -353,6 +338,14 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 				</div>
 			</div>
 
+			{/* Group filter badges - quick group selection */}
+			<GroupFilterBadges
+				groups={groups}
+				selectedGroup={selectedGroup}
+				onSelectGroup={setSelectedGroup}
+				allGroupsValue={ALL_GROUPS}
+			/>
+
 			{/* Filter controls */}
 			<div className="mb-6 flex flex-wrap items-center gap-2">
 				<div className="flex items-center gap-1.5 pr-2">
@@ -369,85 +362,81 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					)}
 				</div>
 				{owners.length > 1 && (
-					<Select
+					<FilterSelect
 						value={filters.owner}
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, owner: value }))
 						}
+						icon={<User className={`mr-2 size-4 ${filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />}
+						placeholder={m.shared_filterOwner()}
+						isActive={filters.owner !== ALL_OWNERS}
+						onClear={() => setFilters((f) => ({ ...f, owner: ALL_OWNERS }))}
+						clearLabel={m.shared_clearOwnerFilter()}
 					>
-						<SelectTrigger className="w-full sm:w-[150px]">
-							<User className={`mr-2 size-4 ${filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />
-							<SelectValue placeholder={m.shared_filterOwner()} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value={ALL_OWNERS}>{m.shared_filterOwnerAll()}</SelectItem>
-							{owners.map((owner) => (
-								<SelectItem key={owner.id} value={owner.id}>
-									{owner.name}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+						<SelectItem value={ALL_OWNERS}>{m.shared_filterOwnerAll()}</SelectItem>
+						{owners.map((owner) => (
+							<SelectItem key={owner.id} value={owner.id}>
+								{owner.name}
+							</SelectItem>
+						))}
+					</FilterSelect>
 				)}
 
-				<Select
+				<FilterSelect
 					value={filters.priority}
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
 					}
+					icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+					placeholder={m.shared_filterPriority()}
+					isActive={filters.priority !== "all"}
+					onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
+					clearLabel={m.shared_clearPriorityFilter()}
 				>
-					<SelectTrigger className="w-full sm:w-[150px]">
-						<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />
-						<SelectValue placeholder={m.shared_filterPriority()} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{m.shared_filterPriorityAll()}</SelectItem>
-						<SelectItem value="5">{m.shared_filterPriorityStars({ count: "5" })}</SelectItem>
-						<SelectItem value="4">{m.shared_filterPriorityStars({ count: "4" })}</SelectItem>
-						<SelectItem value="3">{m.shared_filterPriorityStars({ count: "3" })}</SelectItem>
-						<SelectItem value="2">{m.shared_filterPriorityStars({ count: "2" })}</SelectItem>
-						<SelectItem value="1">{m.shared_filterPriorityStars({ count: "1" })}</SelectItem>
-					</SelectContent>
-				</Select>
+					<SelectItem value="all">{m.shared_filterPriorityAll()}</SelectItem>
+					<SelectItem value="5">{m.shared_filterPriorityStars({ count: "5" })}</SelectItem>
+					<SelectItem value="4">{m.shared_filterPriorityStars({ count: "4" })}</SelectItem>
+					<SelectItem value="3">{m.shared_filterPriorityStars({ count: "3" })}</SelectItem>
+					<SelectItem value="2">{m.shared_filterPriorityStars({ count: "2" })}</SelectItem>
+					<SelectItem value="1">{m.shared_filterPriorityStars({ count: "1" })}</SelectItem>
+				</FilterSelect>
 
-				<Select
+				<FilterSelect
 					value={filters.priceRange}
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
 					}
+					icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+					placeholder={m.shared_filterPrice()}
+					isActive={filters.priceRange !== "all"}
+					onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
+					clearLabel={m.shared_clearPriceFilter()}
 				>
-					<SelectTrigger className="w-full sm:w-[150px]">
-						<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />
-						<SelectValue placeholder={m.shared_filterPrice()} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{m.shared_filterPriceAll()}</SelectItem>
-						<SelectItem value="under25">{m.shared_filterPriceUnder25()}</SelectItem>
-						<SelectItem value="25to50">{m.shared_filterPrice25to50()}</SelectItem>
-						<SelectItem value="50to100">{m.shared_filterPrice50to100()}</SelectItem>
-						<SelectItem value="100to250">{m.shared_filterPrice100to250()}</SelectItem>
-						<SelectItem value="over250">{m.shared_filterPriceOver250()}</SelectItem>
-						<SelectItem value="noPrice">{m.shared_filterPriceNoPrice()}</SelectItem>
-					</SelectContent>
-				</Select>
+					<SelectItem value="all">{m.shared_filterPriceAll()}</SelectItem>
+					<SelectItem value="under25">{m.shared_filterPriceUnder25()}</SelectItem>
+					<SelectItem value="25to50">{m.shared_filterPrice25to50()}</SelectItem>
+					<SelectItem value="50to100">{m.shared_filterPrice50to100()}</SelectItem>
+					<SelectItem value="100to250">{m.shared_filterPrice100to250()}</SelectItem>
+					<SelectItem value="over250">{m.shared_filterPriceOver250()}</SelectItem>
+					<SelectItem value="noPrice">{m.shared_filterPriceNoPrice()}</SelectItem>
+				</FilterSelect>
 
-				<Select
+				<FilterSelect
 					value={filters.claimStatus}
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, claimStatus: value as ClaimStatusFilter }))
 					}
+					icon={<ShoppingCart className={`mr-2 size-4 ${filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />}
+					placeholder={m.shared_filterClaimStatus()}
+					isActive={filters.claimStatus !== "all"}
+					onClear={() => setFilters((f) => ({ ...f, claimStatus: "all" }))}
+					clearLabel={m.shared_clearClaimStatusFilter()}
 				>
-					<SelectTrigger className="w-full sm:w-[150px]">
-						<ShoppingCart className={`mr-2 size-4 ${filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />
-						<SelectValue placeholder={m.shared_filterClaimStatus()} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">{m.shared_filterClaimStatusAll()}</SelectItem>
-						<SelectItem value="available">{m.shared_filterClaimStatusAvailable()}</SelectItem>
-						<SelectItem value="claimedByMe">{m.shared_filterClaimStatusByMe()}</SelectItem>
-						<SelectItem value="claimedByOthers">{m.shared_filterClaimStatusByOthers()}</SelectItem>
-					</SelectContent>
-				</Select>
+					<SelectItem value="all">{m.shared_filterClaimStatusAll()}</SelectItem>
+					<SelectItem value="available">{m.shared_filterClaimStatusAvailable()}</SelectItem>
+					<SelectItem value="claimedByMe">{m.shared_filterClaimStatusByMe()}</SelectItem>
+					<SelectItem value="claimedByOthers">{m.shared_filterClaimStatusByOthers()}</SelectItem>
+				</FilterSelect>
 
 				{hasActiveFilters && (
 					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
