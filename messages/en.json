@@ -25,6 +25,10 @@
   "common_filtersWithCount": "Filters ({count} active)",
   "common_clearAll": "Clear all",
   "common_applyFilters": "Apply Filters",
+  "common_apply": "Apply",
+  "common_done": "Done",
+  "common_sortBy": "Sort by",
+  "common_sortAndFilter": "Sort & Filter",
 
   "auth_signIn": "Sign In",
   "auth_signOut": "Sign Out",

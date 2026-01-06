@@ -34,9 +34,9 @@ export function FilterSelect({
 	clearLabel = "Clear filter",
 }: FilterSelectProps) {
 	return (
-		<div className="relative">
+		<div className={cn("flex items-center", className)}>
 			<Select value={value} onValueChange={onValueChange}>
-				<SelectTrigger className={cn("w-full sm:w-[150px]", isActive && "pr-8", className)}>
+				<SelectTrigger className={cn("w-full sm:w-[150px]", isActive && "rounded-r-none border-r-0")}>
 					{icon}
 					<SelectValue placeholder={placeholder} />
 				</SelectTrigger>
@@ -45,14 +45,11 @@ export function FilterSelect({
 			{isActive && (
 				<button
 					type="button"
-					onClick={(e) => {
-						e.stopPropagation()
-						onClear()
-					}}
-					className="absolute right-6 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					onClick={onClear}
+					className="flex h-11 shrink-0 items-center justify-center rounded-r-md border border-l-0 border-input bg-transparent px-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-9"
 					aria-label={clearLabel}
 				>
-					<X className="size-3" />
+					<X className="size-4" />
 				</button>
 			)}
 		</div>

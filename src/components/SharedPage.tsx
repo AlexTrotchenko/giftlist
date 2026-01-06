@@ -58,8 +58,11 @@ interface SharedPageProps {
 	locale: Locale;
 }
 
-const ALL_GROUPS = "all";
 const ALL_OWNERS = "all";
+
+function isSelectedGroups(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
 
 // Claim status filter (shared-page-specific)
 type ClaimStatusFilter = "all" | "available" | "claimedByMe" | "claimedByOthers";
@@ -147,16 +150,17 @@ function FilteredEmptyState({ onClearFilters }: { onClearFilters: () => void }) 
 
 function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "locale">) {
 	const { data: items = [] } = useSharedItems(initialItems);
-	const [selectedGroup, setSelectedGroup] = useLocalStorage<string>(
-		"shared-group",
-		ALL_GROUPS,
+	const [selectedGroups, setSelectedGroups] = useLocalStorage<string[]>(
+		"shared-groups",
+		[],
+		isSelectedGroups,
 	);
 	const [sortBy, setSortBy] = useLocalStorage<SharedSortOption>(
 		"shared-sort",
 		"newest",
 		isSharedSortOption,
 	);
-	const [filters, setFilters] = useLocalStorage<SharedFilters>(
+	const [filters, setFilters, isFiltersHydrated] = useLocalStorage<SharedFilters>(
 		"shared-filters",
 		DEFAULT_FILTERS,
 		isSharedFilters,
@@ -233,12 +237,29 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 		setFilters(DEFAULT_FILTERS);
 	}, [setFilters]);
 
-	// Filter items by selected group and all filters
+	// Toggle group selection (multi-select)
+	const toggleGroup = useCallback(
+		(groupId: string) => {
+			setSelectedGroups((prev) =>
+				prev.includes(groupId)
+					? prev.filter((id) => id !== groupId)
+					: [...prev, groupId],
+			);
+		},
+		[setSelectedGroups],
+	);
+
+	// Clear all group selections (show all)
+	const clearGroups = useCallback(() => {
+		setSelectedGroups([]);
+	}, [setSelectedGroups]);
+
+	// Filter items by selected groups and all filters
 	const filteredItems = useMemo(() => {
 		return items.filter((sharedItem) => {
-			// Group filter
-			if (selectedGroup !== ALL_GROUPS) {
-				if (!sharedItem.sharedVia.some((group) => group.groupId === selectedGroup)) {
+			// Group filter (multi-select with OR logic)
+			if (selectedGroups.length > 0) {
+				if (!sharedItem.sharedVia.some((group) => selectedGroups.includes(group.groupId))) {
 					return false;
 				}
 			}
@@ -279,7 +300,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 
 			return true;
 		});
-	}, [items, selectedGroup, filters, currentUserId]);
+	}, [items, selectedGroups, filters, currentUserId]);
 
 	// Sort filtered items using shared hook
 	const sortedItems = useSortedSharedItems(filteredItems, sortBy);
@@ -305,63 +326,84 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 		);
 	}
 
-	const selectedGroupName =
-		groups.find((g) => g.id === selectedGroup)?.name || "";
+	// Get names of selected groups for empty state message
+	const selectedGroupNames = selectedGroups
+		.map((id) => groups.find((g) => g.id === id)?.name)
+		.filter(Boolean)
+		.join(", ");
 
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
 			{/* My Claims section - shows items user has claimed */}
 			<MyClaimsSection />
 
-			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold">{m.shared_title()}</h1>
-				<div className="flex flex-wrap items-center gap-2">
-					<Select
-						value={sortBy}
-						onValueChange={(value) => setSortBy(value as SharedSortOption)}
-					>
-						<SelectTrigger className="w-full sm:w-[180px]">
-							<ArrowUpDown className="mr-2 size-4 opacity-50" />
-							<SelectValue placeholder={m.shared_sortBy()} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="newest">{m.shared_sortNewest()}</SelectItem>
-							<SelectItem value="oldest">{m.shared_sortOldest()}</SelectItem>
-							<SelectItem value="price-high">{m.shared_sortPriceHigh()}</SelectItem>
-							<SelectItem value="price-low">{m.shared_sortPriceLow()}</SelectItem>
-							<SelectItem value="name-az">{m.shared_sortNameAZ()}</SelectItem>
-							<SelectItem value="name-za">{m.shared_sortNameZA()}</SelectItem>
-							<SelectItem value="priority-high">{m.shared_sortPriorityHigh()}</SelectItem>
-							<SelectItem value="priority-low">{m.shared_sortPriorityLow()}</SelectItem>
-							<SelectItem value="owner-az">{m.shared_sortOwnerAZ()}</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
+				{/* Desktop: Sort dropdown - hidden on mobile (moved to sheet) */}
+				<Select
+					value={sortBy}
+					onValueChange={(value) => setSortBy(value as SharedSortOption)}
+				>
+					<SelectTrigger className="hidden w-[180px] sm:flex">
+						<ArrowUpDown className="mr-2 size-4 opacity-50" />
+						<SelectValue placeholder={m.shared_sortBy()} />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="newest">{m.shared_sortNewest()}</SelectItem>
+						<SelectItem value="oldest">{m.shared_sortOldest()}</SelectItem>
+						<SelectItem value="price-high">{m.shared_sortPriceHigh()}</SelectItem>
+						<SelectItem value="price-low">{m.shared_sortPriceLow()}</SelectItem>
+						<SelectItem value="name-az">{m.shared_sortNameAZ()}</SelectItem>
+						<SelectItem value="name-za">{m.shared_sortNameZA()}</SelectItem>
+						<SelectItem value="priority-high">{m.shared_sortPriorityHigh()}</SelectItem>
+						<SelectItem value="priority-low">{m.shared_sortPriorityLow()}</SelectItem>
+						<SelectItem value="owner-az">{m.shared_sortOwnerAZ()}</SelectItem>
+					</SelectContent>
+				</Select>
 			</div>
 
-			{/* Group filter badges - quick group selection */}
+			{/* Group filter badges with mobile filter button - scrollable row */}
 			<GroupFilterBadges
 				groups={groups}
-				selectedGroup={selectedGroup}
-				onSelectGroup={setSelectedGroup}
-				allGroupsValue={ALL_GROUPS}
-			/>
-
-			{/* Filter controls */}
-			<div className="mb-6 flex flex-wrap items-center gap-2">
-				{/* Mobile: Filter sheet trigger */}
-				<MobileFiltersSheet
-					activeFilterCount={activeFilterCount}
-					hasActiveFilters={hasActiveFilters}
-					onClearFilters={clearFilters}
-				>
+				selectedGroups={selectedGroups}
+				onToggleGroup={toggleGroup}
+				onClearGroups={clearGroups}
+				leadingElement={
+					<MobileFiltersSheet
+						activeFilterCount={activeFilterCount}
+						hasActiveFilters={hasActiveFilters}
+						isHydrated={isFiltersHydrated}
+						onClearFilters={clearFilters}
+						sortControl={
+							<Select
+								value={sortBy}
+								onValueChange={(value) => setSortBy(value as SharedSortOption)}
+							>
+								<SelectTrigger className="w-full">
+									<ArrowUpDown className="mr-2 size-4 opacity-50" />
+									<SelectValue placeholder={m.shared_sortBy()} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="newest">{m.shared_sortNewest()}</SelectItem>
+									<SelectItem value="oldest">{m.shared_sortOldest()}</SelectItem>
+									<SelectItem value="price-high">{m.shared_sortPriceHigh()}</SelectItem>
+									<SelectItem value="price-low">{m.shared_sortPriceLow()}</SelectItem>
+									<SelectItem value="name-az">{m.shared_sortNameAZ()}</SelectItem>
+									<SelectItem value="name-za">{m.shared_sortNameZA()}</SelectItem>
+									<SelectItem value="priority-high">{m.shared_sortPriorityHigh()}</SelectItem>
+									<SelectItem value="priority-low">{m.shared_sortPriorityLow()}</SelectItem>
+									<SelectItem value="owner-az">{m.shared_sortOwnerAZ()}</SelectItem>
+								</SelectContent>
+							</Select>
+						}
+					>
 					{owners.length > 1 && (
 						<FilterSelect
 							value={filters.owner}
 							onValueChange={(value) =>
 								setFilters((f) => ({ ...f, owner: value }))
 							}
-							icon={<User className={`mr-2 size-4 ${filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />}
+							icon={<User className={`mr-2 size-4 ${isFiltersHydrated && filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />}
 							placeholder={m.shared_filterOwner()}
 							isActive={filters.owner !== ALL_OWNERS}
 							onClear={() => setFilters((f) => ({ ...f, owner: ALL_OWNERS }))}
@@ -382,7 +424,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
 						}
-						icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+						icon={<Star className={`mr-2 size-4 ${isFiltersHydrated && filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
 						placeholder={m.shared_filterPriority()}
 						isActive={filters.priority !== "all"}
 						onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
@@ -402,7 +444,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
 						}
-						icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+						icon={<DollarSign className={`mr-2 size-4 ${isFiltersHydrated && filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
 						placeholder={m.shared_filterPrice()}
 						isActive={filters.priceRange !== "all"}
 						onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
@@ -423,7 +465,7 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, claimStatus: value as ClaimStatusFilter }))
 						}
-						icon={<ShoppingCart className={`mr-2 size-4 ${filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />}
+						icon={<ShoppingCart className={`mr-2 size-4 ${isFiltersHydrated && filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />}
 						placeholder={m.shared_filterClaimStatus()}
 						isActive={filters.claimStatus !== "all"}
 						onClear={() => setFilters((f) => ({ ...f, claimStatus: "all" }))}
@@ -436,14 +478,17 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						<SelectItem value="claimedByOthers">{m.shared_filterClaimStatusByOthers()}</SelectItem>
 					</FilterSelect>
 				</MobileFiltersSheet>
+				}
+			/>
 
-				{/* Desktop: Inline filter controls (hidden on mobile) */}
-				<div className="hidden items-center gap-1.5 pr-2 sm:flex">
+			{/* Desktop: Inline filter controls (hidden on mobile) */}
+			<div className="mb-6 hidden flex-wrap items-center gap-2 sm:flex">
+				<div className="flex items-center gap-1.5 pr-2">
 					<Filter
-						className={`size-4 ${hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
+						className={`size-4 ${isFiltersHydrated && hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
 						aria-hidden="true"
 					/>
-					{hasActiveFilters && (
+					{isFiltersHydrated && hasActiveFilters && (
 						<span
 							className="size-2 rounded-full bg-primary motion-safe:animate-badge-pulse"
 							role="status"
@@ -457,12 +502,12 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, owner: value }))
 						}
-						icon={<User className={`mr-2 size-4 ${filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />}
+						icon={<User className={`mr-2 size-4 ${isFiltersHydrated && filters.owner !== ALL_OWNERS ? "text-primary" : "opacity-50"}`} />}
 						placeholder={m.shared_filterOwner()}
 						isActive={filters.owner !== ALL_OWNERS}
 						onClear={() => setFilters((f) => ({ ...f, owner: ALL_OWNERS }))}
 						clearLabel={m.shared_clearOwnerFilter()}
-						className="hidden sm:flex"
+						className=""
 					>
 						<SelectItem value={ALL_OWNERS}>{m.shared_filterOwnerAll()}</SelectItem>
 						{owners.map((owner) => (
@@ -478,12 +523,12 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
 					}
-					icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+					icon={<Star className={`mr-2 size-4 ${isFiltersHydrated && filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
 					placeholder={m.shared_filterPriority()}
 					isActive={filters.priority !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
 					clearLabel={m.shared_clearPriorityFilter()}
-					className="hidden sm:flex"
+					className=""
 				>
 					<SelectItem value="all">{m.shared_filterPriorityAll()}</SelectItem>
 					<SelectItem value="5">{m.shared_filterPriorityStars({ count: "5" })}</SelectItem>
@@ -498,12 +543,12 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
 					}
-					icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+					icon={<DollarSign className={`mr-2 size-4 ${isFiltersHydrated && filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
 					placeholder={m.shared_filterPrice()}
 					isActive={filters.priceRange !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
 					clearLabel={m.shared_clearPriceFilter()}
-					className="hidden sm:flex"
+					className=""
 				>
 					<SelectItem value="all">{m.shared_filterPriceAll()}</SelectItem>
 					<SelectItem value="under25">{m.shared_filterPriceUnder25()}</SelectItem>
@@ -519,12 +564,12 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, claimStatus: value as ClaimStatusFilter }))
 					}
-					icon={<ShoppingCart className={`mr-2 size-4 ${filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />}
+					icon={<ShoppingCart className={`mr-2 size-4 ${isFiltersHydrated && filters.claimStatus !== "all" ? "text-primary" : "opacity-50"}`} />}
 					placeholder={m.shared_filterClaimStatus()}
 					isActive={filters.claimStatus !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, claimStatus: "all" }))}
 					clearLabel={m.shared_clearClaimStatusFilter()}
-					className="hidden sm:flex"
+					className=""
 				>
 					<SelectItem value="all">{m.shared_filterClaimStatusAll()}</SelectItem>
 					<SelectItem value="available">{m.shared_filterClaimStatusAvailable()}</SelectItem>
@@ -532,8 +577,8 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 					<SelectItem value="claimedByOthers">{m.shared_filterClaimStatusByOthers()}</SelectItem>
 				</FilterSelect>
 
-				{hasActiveFilters && (
-					<Button variant="ghost" size="sm" onClick={clearFilters} className="hidden gap-1 sm:flex">
+				{isFiltersHydrated && hasActiveFilters && (
+					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
 						<X className="size-3" />
 						{m.shared_clearFilters()}
 					</Button>
@@ -542,8 +587,8 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 
 			{sortedItems.length === 0 && hasActiveFilters ? (
 				<FilteredEmptyState onClearFilters={clearFilters} />
-			) : sortedItems.length === 0 && selectedGroup !== ALL_GROUPS ? (
-				<GroupEmptyState groupName={selectedGroupName} />
+			) : sortedItems.length === 0 && selectedGroups.length > 0 ? (
+				<GroupEmptyState groupName={selectedGroupNames} />
 			) : sortedItems.length === 0 ? (
 				<EmptyState />
 			) : (

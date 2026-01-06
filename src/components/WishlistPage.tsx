@@ -157,7 +157,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		"newest",
 		isWishlistSortOption,
 	);
-	const [filters, setFilters] = useLocalStorage<WishlistFilters>(
+	const [filters, setFilters, isFiltersHydrated] = useLocalStorage<WishlistFilters>(
 		"wishlist-filters",
 		DEFAULT_FILTERS,
 		isWishlistFilters,
@@ -323,6 +323,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 				<MobileFiltersSheet
 					activeFilterCount={activeFilterCount}
 					hasActiveFilters={hasActiveFilters}
+					isHydrated={isFiltersHydrated}
 					onClearFilters={clearFilters}
 				>
 					<FilterSelect
@@ -330,7 +331,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
 						}
-						icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+						icon={<Star className={`mr-2 size-4 ${isFiltersHydrated && filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
 						placeholder={m.wishlist_filterPriority()}
 						isActive={filters.priority !== "all"}
 						onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
@@ -350,7 +351,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
 						}
-						icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+						icon={<DollarSign className={`mr-2 size-4 ${isFiltersHydrated && filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
 						placeholder={m.wishlist_filterPrice()}
 						isActive={filters.priceRange !== "all"}
 						onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
@@ -371,7 +372,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 						onValueChange={(value) =>
 							setFilters((f) => ({ ...f, link: value as LinkFilter }))
 						}
-						icon={<Link2 className={`mr-2 size-4 ${filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
+						icon={<Link2 className={`mr-2 size-4 ${isFiltersHydrated && filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
 						placeholder={m.wishlist_filterLink()}
 						isActive={filters.link !== "all"}
 						onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
@@ -387,10 +388,10 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 				{/* Desktop: Inline filter controls (hidden on mobile) */}
 				<div className="hidden items-center gap-1.5 pr-2 sm:flex">
 					<Filter
-						className={`size-4 ${hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
+						className={`size-4 ${isFiltersHydrated && hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
 						aria-hidden="true"
 					/>
-					{hasActiveFilters && (
+					{isFiltersHydrated && hasActiveFilters && (
 						<span
 							className="size-2 rounded-full bg-primary motion-safe:animate-badge-pulse"
 							role="status"
@@ -403,7 +404,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
 					}
-					icon={<Star className={`mr-2 size-4 ${filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+					icon={<Star className={`mr-2 size-4 ${isFiltersHydrated && filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
 					placeholder={m.wishlist_filterPriority()}
 					isActive={filters.priority !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
@@ -423,7 +424,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
 					}
-					icon={<DollarSign className={`mr-2 size-4 ${filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+					icon={<DollarSign className={`mr-2 size-4 ${isFiltersHydrated && filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
 					placeholder={m.wishlist_filterPrice()}
 					isActive={filters.priceRange !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
@@ -444,7 +445,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					onValueChange={(value) =>
 						setFilters((f) => ({ ...f, link: value as LinkFilter }))
 					}
-					icon={<Link2 className={`mr-2 size-4 ${filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
+					icon={<Link2 className={`mr-2 size-4 ${isFiltersHydrated && filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
 					placeholder={m.wishlist_filterLink()}
 					isActive={filters.link !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
@@ -456,7 +457,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
 				</FilterSelect>
 
-				{hasActiveFilters && (
+				{isFiltersHydrated && hasActiveFilters && (
 					<Button variant="ghost" size="sm" onClick={clearFilters} className="hidden gap-1 sm:flex">
 						<X className="size-3" />
 						{m.wishlist_clearFilters()}
