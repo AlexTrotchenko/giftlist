@@ -8,6 +8,7 @@ import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
 import { Button } from "@/components/ui/button";
+import { useGroups } from "@/hooks/useGroups";
 import { useDeleteItem, useItems } from "@/hooks/useItems";
 import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
@@ -73,6 +74,7 @@ function LoadingSkeleton() {
 
 function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	const { data: items = [], isLoading } = useItems(initialItems);
+	const { data: groups = [] } = useGroups();
 	const deleteItem = useDeleteItem();
 
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -185,6 +187,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					<ItemCard
 						key={item.id}
 						item={item}
+						groups={groups}
 						onEdit={handleEditItem}
 						onDelete={handleDeleteItem}
 					/>

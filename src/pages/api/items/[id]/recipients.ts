@@ -329,7 +329,7 @@ export async function DELETE(context: APIContext) {
 	const membersInRemovedGroups = await db
 		.select({ userId: groupMembers.userId })
 		.from(groupMembers)
-		.where(inArray(groupMembers.groupId, validatedData.groupIds));
+		.where(safeInArray(groupMembers.groupId, validatedData.groupIds));
 
 	if (membersInRemovedGroups.length > 0) {
 		const memberIds = membersInRemovedGroups.map((m) => m.userId);

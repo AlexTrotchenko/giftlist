@@ -163,22 +163,22 @@ export function RecipientsPicker({
 			</Popover>
 
 			{selectedGroups.length > 0 && (
-				<div className="flex flex-wrap gap-1">
+				<div className="flex flex-wrap gap-2">
 					{selectedGroups.map((group) => (
 						<Badge
 							key={group.id}
 							variant="secondary"
-							className="gap-1 pr-1"
+							className="gap-1 py-1 pr-1 sm:py-0.5"
 						>
 							<span className="truncate">{group.name}</span>
 							<button
 								type="button"
-								className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+								className="-mr-0.5 ml-1 size-7 shrink-0 rounded-full p-1.5 hover:bg-muted-foreground/20 sm:size-5 sm:p-1"
 								onClick={() => removeGroup(group.id)}
 								aria-label={`Remove ${group.name}`}
 								disabled={disabled}
 							>
-								<X className="size-3" />
+								<X className="size-full" />
 							</button>
 						</Badge>
 					))}

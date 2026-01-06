@@ -1,4 +1,6 @@
-import { ExternalLink, Pencil, Trash2, Users } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, Pencil, Share2, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
 import type { ItemResponse } from "@/db/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,21 +11,74 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { PriorityStars } from "@/components/PriorityStars";
-import { useItemRecipients } from "@/hooks/useItemRecipients";
+import { RecipientsPicker } from "@/components/RecipientsPicker";
+import { useItemRecipients, useSetItemRecipients } from "@/hooks/useItemRecipients";
+import { useCreateGroup } from "@/hooks/useGroups";
+import type { GroupResponse } from "@/db/types";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 import { formatPrice } from "@/i18n/formatting";
 
 interface ItemCardProps {
 	item: ItemResponse;
+	groups: GroupResponse[];
 	onEdit: (item: ItemResponse) => void;
 	onDelete: (item: ItemResponse) => void;
 }
 
-export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
+export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 	const { data: recipients = [] } = useItemRecipients(item.id);
+	const setItemRecipients = useSetItemRecipients();
+	const createGroup = useCreateGroup();
 	const locale = getLocale();
+
+	const [shareOpen, setShareOpen] = useState(false);
+	const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+
+	const currentGroupIds = recipients.map((r) => r.groupId);
+
+	const handleShareOpen = (open: boolean) => {
+		if (open) {
+			// Initialize with current recipients when opening
+			setSelectedGroupIds(currentGroupIds);
+		}
+		setShareOpen(open);
+	};
+
+	const handleSelectedChange = (groupIds: string[]) => {
+		setSelectedGroupIds(groupIds);
+
+		// Immediately save changes
+		const hasChanges =
+			groupIds.length !== currentGroupIds.length ||
+			groupIds.some((id) => !currentGroupIds.includes(id));
+
+		if (hasChanges) {
+			toast.promise(
+				setItemRecipients.mutateAsync({
+					itemId: item.id,
+					groupIds,
+					currentGroupIds,
+				}),
+				{
+					loading: m.common_saving(),
+					success: m.item_updateSuccess(),
+					error: m.errors_failedToSave(),
+				},
+			);
+		}
+	};
+
+	const handleCreateGroup = async (name: string) => {
+		const newGroup = await createGroup.mutateAsync({ name });
+		return newGroup;
+	};
 
 	return (
 		<Card className="group overflow-hidden transition-shadow hover:shadow-md">
@@ -98,16 +153,50 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="size-8"
 						onClick={() => onEdit(item)}
 						aria-label={m.item_editAriaLabel({ name: item.name })}
 					>
 						<Pencil className="size-4" />
 					</Button>
+					<Popover open={shareOpen} onOpenChange={handleShareOpen}>
+						<PopoverTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="relative"
+								aria-label={m.item_shareAriaLabel({ name: item.name })}
+							>
+								<Share2 className="size-4" />
+								{recipients.length > 0 && (
+									<span
+										className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground"
+										aria-label={m.item_sharedWithCount({ count: recipients.length })}
+									>
+										{recipients.length}
+									</span>
+								)}
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent
+							side="top"
+							sideOffset={8}
+							collisionPadding={16}
+							className="w-72 p-3"
+						>
+							<RecipientsPicker
+								groups={groups}
+								selectedGroupIds={selectedGroupIds}
+								onSelectedChange={handleSelectedChange}
+								onCreateGroup={handleCreateGroup}
+								isCreatingGroup={createGroup.isPending}
+								disabled={setItemRecipients.isPending}
+							/>
+						</PopoverContent>
+					</Popover>
 					<Button
 						variant="ghost"
 						size="icon"
-						className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+						className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 						onClick={() => onDelete(item)}
 						aria-label={m.item_deleteAriaLabel({ name: item.name })}
 					>
