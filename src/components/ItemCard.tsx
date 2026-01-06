@@ -153,7 +153,6 @@ export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="size-8"
 						onClick={() => onEdit(item)}
 						aria-label={m.item_editAriaLabel({ name: item.name })}
 					>
@@ -164,7 +163,7 @@ export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 							<Button
 								variant="ghost"
 								size="icon"
-								className="relative size-8"
+								className="relative"
 								aria-label={m.item_shareAriaLabel({ name: item.name })}
 							>
 								<Share2 className="size-4" />
@@ -197,7 +196,7 @@ export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+						className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 						onClick={() => onDelete(item)}
 						aria-label={m.item_deleteAriaLabel({ name: item.name })}
 					>
