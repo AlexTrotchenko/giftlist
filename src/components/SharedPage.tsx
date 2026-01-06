@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Gift } from "lucide-react";
+import { Filter, Gift, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { ItemFormDialog } from "@/components/ItemFormDialog";
 import { MyClaimsSection } from "@/components/MyClaimsSection";
 import { QuickAddFAB } from "@/components/QuickAddFAB";
 import { QuickAddForm, type ExtractedData } from "@/components/QuickAddForm";
 import { SharedItemCard } from "@/components/SharedItemCard";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import type { SharedItem } from "@/hooks/useSharedItems";
 import { useSharedItems } from "@/hooks/useSharedItems";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useQuickAddShortcut } from "@/hooks/useQuickAddShortcut";
 import { LocaleProvider, type Locale } from "@/i18n/LocaleContext";
 import * as m from "@/paraglide/messages";
@@ -35,6 +37,105 @@ interface SharedPageProps {
 }
 
 const ALL_GROUPS = "all";
+const ALL_OWNERS = "all";
+
+// Sort options combining key and direction for simpler UX
+type SharedSortOption =
+	| "newest"
+	| "oldest"
+	| "price-high"
+	| "price-low"
+	| "name-az"
+	| "name-za"
+	| "priority-high"
+	| "priority-low"
+	| "owner-az";
+
+// Filter types
+type PriorityFilter = "all" | "1" | "2" | "3" | "4" | "5";
+type PriceRangeFilter =
+	| "all"
+	| "under25"
+	| "25to50"
+	| "50to100"
+	| "100to250"
+	| "over250"
+	| "noPrice";
+type ClaimStatusFilter = "all" | "available" | "claimedByMe" | "claimedByOthers";
+
+interface SharedFilters {
+	owner: string;
+	priority: PriorityFilter;
+	priceRange: PriceRangeFilter;
+	claimStatus: ClaimStatusFilter;
+}
+
+const DEFAULT_FILTERS: SharedFilters = {
+	owner: ALL_OWNERS,
+	priority: "all",
+	priceRange: "all",
+	claimStatus: "all",
+};
+
+// Type guards for localStorage persistence
+const SHARED_SORT_OPTIONS: SharedSortOption[] = [
+	"newest",
+	"oldest",
+	"price-high",
+	"price-low",
+	"name-az",
+	"name-za",
+	"priority-high",
+	"priority-low",
+	"owner-az",
+];
+
+const PRIORITY_FILTERS: PriorityFilter[] = ["all", "1", "2", "3", "4", "5"];
+const PRICE_RANGE_FILTERS: PriceRangeFilter[] = [
+	"all",
+	"under25",
+	"25to50",
+	"50to100",
+	"100to250",
+	"over250",
+	"noPrice",
+];
+const CLAIM_STATUS_FILTERS: ClaimStatusFilter[] = [
+	"all",
+	"available",
+	"claimedByMe",
+	"claimedByOthers",
+];
+
+function isSharedSortOption(value: unknown): value is SharedSortOption {
+	return typeof value === "string" && SHARED_SORT_OPTIONS.includes(value as SharedSortOption);
+}
+
+function isSharedFilters(value: unknown): value is SharedFilters {
+	if (typeof value !== "object" || value === null) return false;
+	const obj = value as Record<string, unknown>;
+	return (
+		typeof obj.owner === "string" &&
+		typeof obj.priority === "string" &&
+		PRIORITY_FILTERS.includes(obj.priority as PriorityFilter) &&
+		typeof obj.priceRange === "string" &&
+		PRICE_RANGE_FILTERS.includes(obj.priceRange as PriceRangeFilter) &&
+		typeof obj.claimStatus === "string" &&
+		CLAIM_STATUS_FILTERS.includes(obj.claimStatus as ClaimStatusFilter)
+	);
+}
+
+// Price range boundaries in cents
+const PRICE_RANGES: Record<
+	Exclude<PriceRangeFilter, "all" | "noPrice">,
+	{ min: number; max: number }
+> = {
+	under25: { min: 0, max: 2499 },
+	"25to50": { min: 2500, max: 5000 },
+	"50to100": { min: 5001, max: 10000 },
+	"100to250": { min: 10001, max: 25000 },
+	over250: { min: 25001, max: Number.POSITIVE_INFINITY },
+};
 
 function EmptyState() {
 	return (
@@ -50,7 +151,7 @@ function EmptyState() {
 	);
 }
 
-function FilteredEmptyState({ groupName }: { groupName: string }) {
+function GroupEmptyState({ groupName }: { groupName: string }) {
 	return (
 		<div className="flex flex-col items-center justify-center py-16 text-center">
 			<div className="mb-4 rounded-full bg-muted p-4">
@@ -64,9 +165,37 @@ function FilteredEmptyState({ groupName }: { groupName: string }) {
 	);
 }
 
+function FilteredEmptyState({ onClearFilters }: { onClearFilters: () => void }) {
+	return (
+		<div className="flex flex-col items-center justify-center py-16 text-center">
+			<div className="mb-4 rounded-full bg-muted p-4">
+				<Filter className="size-8 text-muted-foreground" />
+			</div>
+			<h2 className="mb-2 text-xl font-semibold">{m.shared_noFilteredItems()}</h2>
+			<p className="mb-6 max-w-sm text-muted-foreground">
+				{m.shared_noFilteredItemsDescription()}
+			</p>
+			<Button variant="outline" onClick={onClearFilters}>
+				<X className="size-4" />
+				{m.shared_clearFilters()}
+			</Button>
+		</div>
+	);
+}
+
 function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "locale">) {
 	const { data: items = [] } = useSharedItems(initialItems);
 	const [selectedGroup, setSelectedGroup] = useState<string>(ALL_GROUPS);
+	const [sortBy, setSortBy] = useLocalStorage<SharedSortOption>(
+		"shared-sort",
+		"newest",
+		isSharedSortOption,
+	);
+	const [filters, setFilters] = useLocalStorage<SharedFilters>(
+		"shared-filters",
+		DEFAULT_FILTERS,
+		isSharedFilters,
+	);
 
 	// Quick add state
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,15 +239,148 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 		}));
 	}, [items]);
 
-	// Filter items by selected group
-	const filteredItems = useMemo(() => {
-		if (selectedGroup === ALL_GROUPS) {
-			return items;
+	// Extract unique owners from all items
+	const owners = useMemo(() => {
+		const ownerMap = new Map<string, string>();
+		for (const item of items) {
+			ownerMap.set(item.owner.id, item.owner.name ?? item.owner.email);
 		}
-		return items.filter((item) =>
-			item.sharedVia.some((group) => group.groupId === selectedGroup),
-		);
-	}, [items, selectedGroup]);
+		return Array.from(ownerMap.entries()).map(([id, name]) => ({
+			id,
+			name,
+		}));
+	}, [items]);
+
+	// Count active filters (excluding group which has its own UI)
+	const activeFilterCount = useMemo(() => {
+		let count = 0;
+		if (filters.owner !== ALL_OWNERS) count++;
+		if (filters.priority !== "all") count++;
+		if (filters.priceRange !== "all") count++;
+		if (filters.claimStatus !== "all") count++;
+		return count;
+	}, [filters]);
+
+	const hasActiveFilters = activeFilterCount > 0;
+
+	// Clear all filters
+	const clearFilters = useCallback(() => {
+		setFilters(DEFAULT_FILTERS);
+	}, [setFilters]);
+
+	// Filter items by selected group and all filters
+	const filteredItems = useMemo(() => {
+		return items.filter((sharedItem) => {
+			// Group filter
+			if (selectedGroup !== ALL_GROUPS) {
+				if (!sharedItem.sharedVia.some((group) => group.groupId === selectedGroup)) {
+					return false;
+				}
+			}
+
+			// Owner filter
+			if (filters.owner !== ALL_OWNERS) {
+				if (sharedItem.owner.id !== filters.owner) return false;
+			}
+
+			// Priority filter
+			if (filters.priority !== "all") {
+				const targetPriority = Number.parseInt(filters.priority, 10);
+				if (sharedItem.item.priority !== targetPriority) return false;
+			}
+
+			// Price range filter
+			if (filters.priceRange !== "all") {
+				if (filters.priceRange === "noPrice") {
+					if (sharedItem.item.price != null) return false;
+				} else {
+					if (sharedItem.item.price == null) return false;
+					const range = PRICE_RANGES[filters.priceRange];
+					if (sharedItem.item.price < range.min || sharedItem.item.price > range.max) {
+						return false;
+					}
+				}
+			}
+
+			// Claim status filter
+			if (filters.claimStatus !== "all") {
+				const hasClaims = sharedItem.claims.length > 0;
+				const isClaimedByMe = sharedItem.claims.some(
+					(claim) => claim.userId === currentUserId,
+				);
+				const isFullyClaimed =
+					sharedItem.claimableAmount === 0 ||
+					sharedItem.claims.some((c) => c.amount === null);
+
+				switch (filters.claimStatus) {
+					case "available":
+						if (isFullyClaimed) return false;
+						break;
+					case "claimedByMe":
+						if (!isClaimedByMe) return false;
+						break;
+					case "claimedByOthers":
+						if (!hasClaims || isClaimedByMe) return false;
+						break;
+				}
+			}
+
+			return true;
+		});
+	}, [items, selectedGroup, filters, currentUserId]);
+
+	// Sort filtered items based on selected sort option
+	const sortedItems = useMemo(() => {
+		const sorted = [...filteredItems];
+		return sorted.sort((a, b) => {
+			switch (sortBy) {
+				case "newest":
+					return (
+						new Date(b.item.createdAt ?? 0).getTime() -
+						new Date(a.item.createdAt ?? 0).getTime()
+					);
+				case "oldest":
+					return (
+						new Date(a.item.createdAt ?? 0).getTime() -
+						new Date(b.item.createdAt ?? 0).getTime()
+					);
+				case "price-high":
+					// Items without price go to the end
+					if (a.item.price == null && b.item.price == null) return 0;
+					if (a.item.price == null) return 1;
+					if (b.item.price == null) return -1;
+					return b.item.price - a.item.price;
+				case "price-low":
+					// Items without price go to the end
+					if (a.item.price == null && b.item.price == null) return 0;
+					if (a.item.price == null) return 1;
+					if (b.item.price == null) return -1;
+					return a.item.price - b.item.price;
+				case "name-az":
+					return a.item.name.localeCompare(b.item.name);
+				case "name-za":
+					return b.item.name.localeCompare(a.item.name);
+				case "priority-high":
+					// Items without priority go to the end
+					if (a.item.priority == null && b.item.priority == null) return 0;
+					if (a.item.priority == null) return 1;
+					if (b.item.priority == null) return -1;
+					return b.item.priority - a.item.priority;
+				case "priority-low":
+					// Items without priority go to the end
+					if (a.item.priority == null && b.item.priority == null) return 0;
+					if (a.item.priority == null) return 1;
+					if (b.item.priority == null) return -1;
+					return a.item.priority - b.item.priority;
+				case "owner-az":
+					const aName = a.owner.name ?? a.owner.email;
+					const bName = b.owner.name ?? b.owner.email;
+					return aName.localeCompare(bName);
+				default:
+					return 0;
+			}
+		});
+	}, [filteredItems, sortBy]);
 
 	// No items at all
 	if (items.length === 0) {
@@ -151,28 +413,140 @@ function SharedContent({ initialItems, currentUserId }: Omit<SharedPageProps, "l
 
 			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h1 className="text-2xl font-bold">{m.shared_title()}</h1>
-				{groups.length > 1 && (
-					<Select value={selectedGroup} onValueChange={setSelectedGroup}>
+				<div className="flex flex-wrap items-center gap-2">
+					{groups.length > 1 && (
+						<Select value={selectedGroup} onValueChange={setSelectedGroup}>
+							<SelectTrigger className="w-full sm:w-[180px]">
+								<SelectValue placeholder={m.shared_filterByGroup()} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value={ALL_GROUPS}>{m.shared_allGroups()}</SelectItem>
+								{groups.map((group) => (
+									<SelectItem key={group.id} value={group.id}>
+										{group.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					)}
+					<Select
+						value={sortBy}
+						onValueChange={(value) => setSortBy(value as SharedSortOption)}
+					>
 						<SelectTrigger className="w-full sm:w-[180px]">
-							<SelectValue placeholder={m.shared_filterByGroup()} />
+							<SelectValue placeholder={m.shared_sortBy()} />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value={ALL_GROUPS}>{m.shared_allGroups()}</SelectItem>
-							{groups.map((group) => (
-								<SelectItem key={group.id} value={group.id}>
-									{group.name}
+							<SelectItem value="newest">{m.shared_sortNewest()}</SelectItem>
+							<SelectItem value="oldest">{m.shared_sortOldest()}</SelectItem>
+							<SelectItem value="price-high">{m.shared_sortPriceHigh()}</SelectItem>
+							<SelectItem value="price-low">{m.shared_sortPriceLow()}</SelectItem>
+							<SelectItem value="name-az">{m.shared_sortNameAZ()}</SelectItem>
+							<SelectItem value="name-za">{m.shared_sortNameZA()}</SelectItem>
+							<SelectItem value="priority-high">{m.shared_sortPriorityHigh()}</SelectItem>
+							<SelectItem value="priority-low">{m.shared_sortPriorityLow()}</SelectItem>
+							<SelectItem value="owner-az">{m.shared_sortOwnerAZ()}</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+
+			{/* Filter controls */}
+			<div className="mb-6 flex flex-wrap items-center gap-2">
+				{owners.length > 1 && (
+					<Select
+						value={filters.owner}
+						onValueChange={(value) =>
+							setFilters((f) => ({ ...f, owner: value }))
+						}
+					>
+						<SelectTrigger className="w-full sm:w-[150px]">
+							<SelectValue placeholder={m.shared_filterOwner()} />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value={ALL_OWNERS}>{m.shared_filterOwnerAll()}</SelectItem>
+							{owners.map((owner) => (
+								<SelectItem key={owner.id} value={owner.id}>
+									{owner.name}
 								</SelectItem>
 							))}
 						</SelectContent>
 					</Select>
 				)}
+
+				<Select
+					value={filters.priority}
+					onValueChange={(value) =>
+						setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
+					}
+				>
+					<SelectTrigger className="w-full sm:w-[150px]">
+						<SelectValue placeholder={m.shared_filterPriority()} />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">{m.shared_filterPriorityAll()}</SelectItem>
+						<SelectItem value="5">{m.shared_filterPriorityStars({ count: "5" })}</SelectItem>
+						<SelectItem value="4">{m.shared_filterPriorityStars({ count: "4" })}</SelectItem>
+						<SelectItem value="3">{m.shared_filterPriorityStars({ count: "3" })}</SelectItem>
+						<SelectItem value="2">{m.shared_filterPriorityStars({ count: "2" })}</SelectItem>
+						<SelectItem value="1">{m.shared_filterPriorityStars({ count: "1" })}</SelectItem>
+					</SelectContent>
+				</Select>
+
+				<Select
+					value={filters.priceRange}
+					onValueChange={(value) =>
+						setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
+					}
+				>
+					<SelectTrigger className="w-full sm:w-[150px]">
+						<SelectValue placeholder={m.shared_filterPrice()} />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">{m.shared_filterPriceAll()}</SelectItem>
+						<SelectItem value="under25">{m.shared_filterPriceUnder25()}</SelectItem>
+						<SelectItem value="25to50">{m.shared_filterPrice25to50()}</SelectItem>
+						<SelectItem value="50to100">{m.shared_filterPrice50to100()}</SelectItem>
+						<SelectItem value="100to250">{m.shared_filterPrice100to250()}</SelectItem>
+						<SelectItem value="over250">{m.shared_filterPriceOver250()}</SelectItem>
+						<SelectItem value="noPrice">{m.shared_filterPriceNoPrice()}</SelectItem>
+					</SelectContent>
+				</Select>
+
+				<Select
+					value={filters.claimStatus}
+					onValueChange={(value) =>
+						setFilters((f) => ({ ...f, claimStatus: value as ClaimStatusFilter }))
+					}
+				>
+					<SelectTrigger className="w-full sm:w-[150px]">
+						<SelectValue placeholder={m.shared_filterClaimStatus()} />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">{m.shared_filterClaimStatusAll()}</SelectItem>
+						<SelectItem value="available">{m.shared_filterClaimStatusAvailable()}</SelectItem>
+						<SelectItem value="claimedByMe">{m.shared_filterClaimStatusByMe()}</SelectItem>
+						<SelectItem value="claimedByOthers">{m.shared_filterClaimStatusByOthers()}</SelectItem>
+					</SelectContent>
+				</Select>
+
+				{hasActiveFilters && (
+					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+						<X className="size-3" />
+						{m.shared_clearFilters()}
+					</Button>
+				)}
 			</div>
 
-			{filteredItems.length === 0 ? (
-				<FilteredEmptyState groupName={selectedGroupName} />
+			{sortedItems.length === 0 && hasActiveFilters ? (
+				<FilteredEmptyState onClearFilters={clearFilters} />
+			) : sortedItems.length === 0 && selectedGroup !== ALL_GROUPS ? (
+				<GroupEmptyState groupName={selectedGroupName} />
+			) : sortedItems.length === 0 ? (
+				<EmptyState />
 			) : (
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{filteredItems.map((sharedItem) => (
+					{sortedItems.map((sharedItem) => (
 						<SharedItemCard
 							key={sharedItem.item.id}
 							sharedItem={sharedItem}
