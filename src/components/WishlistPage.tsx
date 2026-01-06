@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { DollarSign, Filter, Gift, Link2, Plus, Star, X } from "lucide-react";
+import { ArrowUpDown, DollarSign, Filter, Gift, Link2, Plus, Star, X } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -288,11 +288,13 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 
 	return (
 		<div className="container mx-auto max-w-screen-xl px-4 py-8">
-			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold">{m.wishlist_title()}</h1>
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="flex items-center gap-2">
+					{/* Desktop: Sort dropdown - hidden on mobile (moved to sheet) */}
 					<Select value={sortBy} onValueChange={(value) => setSortBy(value as WishlistSortOption)}>
-						<SelectTrigger className="w-full sm:w-[180px]">
+						<SelectTrigger className="hidden w-[180px] sm:flex">
+							<ArrowUpDown className="mr-2 size-4 opacity-50" />
 							<SelectValue placeholder={m.wishlist_sortBy()} />
 						</SelectTrigger>
 						<SelectContent>
@@ -306,87 +308,121 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 							<SelectItem value="priority-low">{m.wishlist_sortPriorityLow()}</SelectItem>
 						</SelectContent>
 					</Select>
-					<Button variant="outline" onClick={openQuickAdd}>
+					<Button variant="outline" onClick={openQuickAdd} className="hidden sm:flex">
 						<Plus className="size-4" />
 						{m.item_quickAdd()}
 					</Button>
-					<Button onClick={handleAddItem}>
+					<Button onClick={handleAddItem} className="hidden sm:flex">
 						<Plus className="size-4" />
 						{m.wishlist_addItem()}
 					</Button>
 				</div>
 			</div>
 
-			{/* Filter controls */}
-			<div className="mb-6 flex flex-wrap items-center gap-2">
-				{/* Mobile: Filter sheet trigger */}
-				<MobileFiltersSheet
-					activeFilterCount={activeFilterCount}
-					hasActiveFilters={hasActiveFilters}
-					isHydrated={isFiltersHydrated}
-					onClearFilters={clearFilters}
-				>
-					<FilterSelect
-						value={filters.priority}
-						onValueChange={(value) =>
-							setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
+			{/* Mobile: Sort & Filter sheet + action buttons in scrollable row */}
+			<div className="relative -mx-4 mb-4 px-4 sm:hidden">
+				<div className="scrollbar-none flex gap-2 overflow-x-auto pb-2">
+					<MobileFiltersSheet
+						activeFilterCount={activeFilterCount}
+						hasActiveFilters={hasActiveFilters}
+						isHydrated={isFiltersHydrated}
+						onClearFilters={clearFilters}
+						sortControl={
+							<Select value={sortBy} onValueChange={(value) => setSortBy(value as WishlistSortOption)}>
+								<SelectTrigger className="w-full">
+									<ArrowUpDown className="mr-2 size-4 opacity-50" />
+									<SelectValue placeholder={m.wishlist_sortBy()} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="newest">{m.wishlist_sortNewest()}</SelectItem>
+									<SelectItem value="oldest">{m.wishlist_sortOldest()}</SelectItem>
+									<SelectItem value="price-high">{m.wishlist_sortPriceHigh()}</SelectItem>
+									<SelectItem value="price-low">{m.wishlist_sortPriceLow()}</SelectItem>
+									<SelectItem value="name-az">{m.wishlist_sortNameAZ()}</SelectItem>
+									<SelectItem value="name-za">{m.wishlist_sortNameZA()}</SelectItem>
+									<SelectItem value="priority-high">{m.wishlist_sortPriorityHigh()}</SelectItem>
+									<SelectItem value="priority-low">{m.wishlist_sortPriorityLow()}</SelectItem>
+								</SelectContent>
+							</Select>
 						}
-						icon={<Star className={`mr-2 size-4 ${isFiltersHydrated && filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
-						placeholder={m.wishlist_filterPriority()}
-						isActive={filters.priority !== "all"}
-						onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
-						clearLabel={m.wishlist_clearPriorityFilter()}
-						className="w-full"
 					>
-						<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
-						<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
-						<SelectItem value="4">{m.wishlist_filterPriorityStars({ count: "4" })}</SelectItem>
-						<SelectItem value="3">{m.wishlist_filterPriorityStars({ count: "3" })}</SelectItem>
-						<SelectItem value="2">{m.wishlist_filterPriorityStars({ count: "2" })}</SelectItem>
-						<SelectItem value="1">{m.wishlist_filterPriorityStars({ count: "1" })}</SelectItem>
-					</FilterSelect>
+						<FilterSelect
+							value={filters.priority}
+							onValueChange={(value) =>
+								setFilters((f) => ({ ...f, priority: value as PriorityFilter }))
+							}
+							icon={<Star className={`mr-2 size-4 ${isFiltersHydrated && filters.priority !== "all" ? "text-primary" : "opacity-50"}`} />}
+							placeholder={m.wishlist_filterPriority()}
+							isActive={filters.priority !== "all"}
+							onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
+							clearLabel={m.wishlist_clearPriorityFilter()}
+							className="w-full"
+						>
+							<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
+							<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
+							<SelectItem value="4">{m.wishlist_filterPriorityStars({ count: "4" })}</SelectItem>
+							<SelectItem value="3">{m.wishlist_filterPriorityStars({ count: "3" })}</SelectItem>
+							<SelectItem value="2">{m.wishlist_filterPriorityStars({ count: "2" })}</SelectItem>
+							<SelectItem value="1">{m.wishlist_filterPriorityStars({ count: "1" })}</SelectItem>
+						</FilterSelect>
 
-					<FilterSelect
-						value={filters.priceRange}
-						onValueChange={(value) =>
-							setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
-						}
-						icon={<DollarSign className={`mr-2 size-4 ${isFiltersHydrated && filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
-						placeholder={m.wishlist_filterPrice()}
-						isActive={filters.priceRange !== "all"}
-						onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
-						clearLabel={m.wishlist_clearPriceFilter()}
-						className="w-full"
-					>
-						<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
-						<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
-						<SelectItem value="25to50">{m.wishlist_filterPrice25to50()}</SelectItem>
-						<SelectItem value="50to100">{m.wishlist_filterPrice50to100()}</SelectItem>
-						<SelectItem value="100to250">{m.wishlist_filterPrice100to250()}</SelectItem>
-						<SelectItem value="over250">{m.wishlist_filterPriceOver250()}</SelectItem>
-						<SelectItem value="noPrice">{m.wishlist_filterPriceNoPrice()}</SelectItem>
-					</FilterSelect>
+						<FilterSelect
+							value={filters.priceRange}
+							onValueChange={(value) =>
+								setFilters((f) => ({ ...f, priceRange: value as PriceRangeFilter }))
+							}
+							icon={<DollarSign className={`mr-2 size-4 ${isFiltersHydrated && filters.priceRange !== "all" ? "text-primary" : "opacity-50"}`} />}
+							placeholder={m.wishlist_filterPrice()}
+							isActive={filters.priceRange !== "all"}
+							onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
+							clearLabel={m.wishlist_clearPriceFilter()}
+							className="w-full"
+						>
+							<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
+							<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
+							<SelectItem value="25to50">{m.wishlist_filterPrice25to50()}</SelectItem>
+							<SelectItem value="50to100">{m.wishlist_filterPrice50to100()}</SelectItem>
+							<SelectItem value="100to250">{m.wishlist_filterPrice100to250()}</SelectItem>
+							<SelectItem value="over250">{m.wishlist_filterPriceOver250()}</SelectItem>
+							<SelectItem value="noPrice">{m.wishlist_filterPriceNoPrice()}</SelectItem>
+						</FilterSelect>
 
-					<FilterSelect
-						value={filters.link}
-						onValueChange={(value) =>
-							setFilters((f) => ({ ...f, link: value as LinkFilter }))
-						}
-						icon={<Link2 className={`mr-2 size-4 ${isFiltersHydrated && filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
-						placeholder={m.wishlist_filterLink()}
-						isActive={filters.link !== "all"}
-						onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
-						clearLabel={m.wishlist_clearLinkFilter()}
-						className="w-full"
-					>
-						<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
-						<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
-						<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
-					</FilterSelect>
-				</MobileFiltersSheet>
+						<FilterSelect
+							value={filters.link}
+							onValueChange={(value) =>
+								setFilters((f) => ({ ...f, link: value as LinkFilter }))
+							}
+							icon={<Link2 className={`mr-2 size-4 ${isFiltersHydrated && filters.link !== "all" ? "text-primary" : "opacity-50"}`} />}
+							placeholder={m.wishlist_filterLink()}
+							isActive={filters.link !== "all"}
+							onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
+							clearLabel={m.wishlist_clearLinkFilter()}
+							className="w-full"
+						>
+							<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
+							<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
+							<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
+						</FilterSelect>
+					</MobileFiltersSheet>
+					<Button variant="outline" size="sm" onClick={openQuickAdd} className="shrink-0 rounded-full">
+						<Plus className="size-4" />
+						{m.item_quickAdd()}
+					</Button>
+					<Button size="sm" onClick={handleAddItem} className="shrink-0 rounded-full">
+						<Plus className="size-4" />
+						{m.wishlist_addItem()}
+					</Button>
+				</div>
+				{/* Right fade hint */}
+				<div
+					className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent"
+					aria-hidden="true"
+				/>
+			</div>
 
-				{/* Desktop: Inline filter controls (hidden on mobile) */}
-				<div className="hidden items-center gap-1.5 pr-2 sm:flex">
+			{/* Desktop: Inline filter controls (hidden on mobile) */}
+			<div className="mb-6 hidden flex-wrap items-center gap-2 sm:flex">
+				<div className="flex items-center gap-1.5 pr-2">
 					<Filter
 						className={`size-4 ${isFiltersHydrated && hasActiveFilters ? "text-primary" : "text-muted-foreground"}`}
 						aria-hidden="true"
@@ -409,7 +445,6 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					isActive={filters.priority !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priority: "all" }))}
 					clearLabel={m.wishlist_clearPriorityFilter()}
-					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.wishlist_filterPriorityAll()}</SelectItem>
 					<SelectItem value="5">{m.wishlist_filterPriorityStars({ count: "5" })}</SelectItem>
@@ -429,7 +464,6 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					isActive={filters.priceRange !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, priceRange: "all" }))}
 					clearLabel={m.wishlist_clearPriceFilter()}
-					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.wishlist_filterPriceAll()}</SelectItem>
 					<SelectItem value="under25">{m.wishlist_filterPriceUnder25()}</SelectItem>
@@ -450,7 +484,6 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					isActive={filters.link !== "all"}
 					onClear={() => setFilters((f) => ({ ...f, link: "all" }))}
 					clearLabel={m.wishlist_clearLinkFilter()}
-					className="hidden sm:flex"
 				>
 					<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
 					<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
@@ -458,7 +491,7 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 				</FilterSelect>
 
 				{isFiltersHydrated && hasActiveFilters && (
-					<Button variant="ghost" size="sm" onClick={clearFilters} className="hidden gap-1 sm:flex">
+					<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
 						<X className="size-3" />
 						{m.wishlist_clearFilters()}
 					</Button>
