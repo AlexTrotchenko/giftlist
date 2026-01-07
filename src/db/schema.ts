@@ -25,6 +25,10 @@ export const users = sqliteTable("users", {
 	),
 });
 
+// Item status values for lifecycle tracking
+export const itemStatuses = ["active", "received", "archived"] as const;
+export type ItemStatus = (typeof itemStatuses)[number];
+
 export const items = sqliteTable("items", {
 	id: text("id")
 		.primaryKey()
@@ -38,6 +42,7 @@ export const items = sqliteTable("items", {
 	notes: text("notes"),
 	imageUrl: text("image_url"),
 	priority: integer("priority"), // 1-5 stars, null = no priority
+	status: text("status").notNull().default("active"), // 'active', 'received', 'archived'
 	createdAt: integer("created_at", { mode: "timestamp_ms" }).$defaultFn(
 		() => new Date(),
 	),
@@ -168,6 +173,8 @@ export const claims = sqliteTable(
 		amount: integer("amount"),
 		// Claim expiration (null = no expiration, default 30 days from creation)
 		expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+		// When the gift-giver marked this claim as purchased (null = not yet purchased)
+		purchasedAt: integer("purchased_at", { mode: "timestamp_ms" }),
 		createdAt: integer("created_at", { mode: "timestamp_ms" }).$defaultFn(
 			() => new Date(),
 		),

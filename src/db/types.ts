@@ -79,9 +79,13 @@ export type ItemRecipientResponse = Omit<ItemRecipient, "createdAt"> & {
 export type Claim = typeof claims.$inferSelect;
 export type NewClaim = typeof claims.$inferInsert;
 
-export type ClaimResponse = Omit<Claim, "createdAt" | "expiresAt"> & {
+export type ClaimResponse = Omit<
+	Claim,
+	"createdAt" | "expiresAt" | "purchasedAt"
+> & {
 	createdAt: string | null;
 	expiresAt: string | null;
+	purchasedAt: string | null;
 };
 
 // Claim with claimer user info for API responses

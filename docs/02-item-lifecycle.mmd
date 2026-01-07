@@ -2,35 +2,56 @@
 title: Item Lifecycle
 ---
 stateDiagram-v2
-    [*] --> Private: add(owner, item, details)
+    [*] --> Active: add(owner, item, details)
 
-    Private --> Private: update details
-    Private --> Shared: tag with recipient
-    Private --> [*]: remove
+    state Active {
+        Private --> Shared: tag with recipient
+        Shared --> Private: remove all tags
+        Shared --> Claimed: recipient claims
+        Claimed --> Shared: claimer unclaims
+        Claimed --> Shared: claimer loses access
+    }
 
-    Shared --> Shared: add more tags
-    Shared --> Shared: update details
-    Shared --> Private: remove all tags
-    Shared --> Claimed: recipient claims
-    Shared --> [*]: remove
+    Active --> Active: update details
+    Active --> Received: owner marks received
+    Active --> Archived: owner archives (no claims)
+    Active --> [*]: remove
 
-    Claimed --> Claimed: update details
-    Claimed --> Shared: claimer unclaims
-    Claimed --> Shared: claimer loses access
-    Claimed --> [*]: remove
+    Received --> Archived: owner archives
+    Received --> Active: owner restores
 
-    note right of Private
-        Only owner can see
-        Not available for claiming
+    Archived --> Active: owner restores
+
+    note right of Active
+        Default state for new items
+        Sub-states track sharing/claiming
+        Recipients can see and claim
     end note
 
-    note right of Shared
-        Owner + tagged recipients can see
+    note right of Received
+        Owner confirmed receipt
+        Recipients see "Gifted" badge
+        Claimers notified of receipt
+    end note
+
+    note right of Archived
+        Hidden from recipients
+        Only owner can see (archive view)
+        Can be restored to Active
+    end note
+
+    note left of Private
+        Only owner can see
+        Not shared with anyone
+    end note
+
+    note left of Shared
+        Tagged with recipients
         Available for claiming
     end note
 
-    note right of Claimed
-        Owner sees as normal item
-        Recipients see claim + claimer
-        Locked - no one else can claim
+    note left of Claimed
+        Locked by claimer
+        Hidden from owner
+        Visible to other recipients
     end note

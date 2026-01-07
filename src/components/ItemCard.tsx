@@ -1,5 +1,15 @@
-import { useState } from "react";
-import { ExternalLink, Pencil, Share2, Trash2, Users } from "lucide-react";
+import { memo, useState } from "react";
+import {
+	Archive,
+	ExternalLink,
+	Gift,
+	MoreVertical,
+	Pencil,
+	RotateCcw,
+	Share2,
+	Trash2,
+	Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { ItemResponse } from "@/db/types";
 import { Button } from "@/components/ui/button";
@@ -12,6 +22,13 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
@@ -20,6 +37,7 @@ import { PriorityStars } from "@/components/PriorityStars";
 import { RecipientsPicker } from "@/components/RecipientsPicker";
 import { useItemRecipients, useSetItemRecipients } from "@/hooks/useItemRecipients";
 import { useCreateGroup } from "@/hooks/useGroups";
+import { useReceiveItem, useArchiveItem, useRestoreItem } from "@/hooks/useArchive";
 import type { GroupResponse } from "@/db/types";
 import * as m from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
@@ -32,14 +50,44 @@ interface ItemCardProps {
 	onDelete: (item: ItemResponse) => void;
 }
 
-export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
+export const ItemCard = memo(function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 	const { data: recipients = [] } = useItemRecipients(item.id);
 	const setItemRecipients = useSetItemRecipients();
 	const createGroup = useCreateGroup();
+	const receiveItem = useReceiveItem();
+	const archiveItem = useArchiveItem();
+	const restoreItem = useRestoreItem();
 	const locale = getLocale();
 
 	const [shareOpen, setShareOpen] = useState(false);
 	const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+
+	const handleReceive = () => {
+		toast.promise(receiveItem.mutateAsync(item.id), {
+			loading: m.common_saving(),
+			success: m.archive_receiveSuccess(),
+			error: (err) => err.message || m.errors_genericError(),
+		});
+	};
+
+	const handleArchive = () => {
+		toast.promise(archiveItem.mutateAsync(item.id), {
+			loading: m.common_saving(),
+			success: m.archive_archiveSuccess(),
+			error: (err) => err.message || m.errors_genericError(),
+		});
+	};
+
+	const handleRestore = () => {
+		toast.promise(restoreItem.mutateAsync(item.id), {
+			loading: m.common_saving(),
+			success: m.archive_restoreSuccess(),
+			error: (err) => err.message || m.errors_genericError(),
+		});
+	};
+
+	const isArchiveActionPending =
+		receiveItem.isPending || archiveItem.isPending || restoreItem.isPending;
 
 	const currentGroupIds = recipients.map((r) => r.groupId);
 
@@ -83,7 +131,7 @@ export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 	return (
 		<Card className="group overflow-hidden transition-shadow hover:shadow-md">
 			{/* Image or placeholder */}
-			<div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+			<div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
 				{item.imageUrl ? (
 					<img
 						src={item.imageUrl}
@@ -96,6 +144,25 @@ export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 					<div className="flex h-full w-full items-center justify-center">
 						<span className="text-sm text-muted-foreground">{m.common_noImage()}</span>
 					</div>
+				)}
+				{/* Status badge for received/archived items */}
+				{item.status === "received" && (
+					<Badge
+						variant="secondary"
+						className="absolute left-2 top-2 gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+					>
+						<Gift className="size-3" />
+						{m.archive_statusReceived()}
+					</Badge>
+				)}
+				{item.status === "archived" && (
+					<Badge
+						variant="secondary"
+						className="absolute left-2 top-2 gap-1 bg-muted text-muted-foreground"
+					>
+						<Archive className="size-3" />
+						{m.archive_statusArchived()}
+					</Badge>
 				)}
 			</div>
 
@@ -193,17 +260,63 @@ export function ItemCard({ item, groups, onEdit, onDelete }: ItemCardProps) {
 							/>
 						</PopoverContent>
 					</Popover>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-						onClick={() => onDelete(item)}
-						aria-label={m.item_deleteAriaLabel({ name: item.name })}
-					>
-						<Trash2 className="size-4" />
-					</Button>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								aria-label={m.archive_moreActions()}
+								disabled={isArchiveActionPending}
+							>
+								<MoreVertical className="size-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end" sideOffset={8}>
+							{/* Active items can be marked as received or archived */}
+							{item.status === "active" && (
+								<>
+									<DropdownMenuItem onClick={handleReceive}>
+										<Gift className="mr-2 size-4 text-green-600" />
+										{m.archive_markReceived()}
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={handleArchive}>
+										<Archive className="mr-2 size-4" />
+										{m.archive_archive()}
+									</DropdownMenuItem>
+								</>
+							)}
+							{/* Received items can be archived or restored */}
+							{item.status === "received" && (
+								<>
+									<DropdownMenuItem onClick={handleArchive}>
+										<Archive className="mr-2 size-4" />
+										{m.archive_archive()}
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={handleRestore}>
+										<RotateCcw className="mr-2 size-4" />
+										{m.archive_restore()}
+									</DropdownMenuItem>
+								</>
+							)}
+							{/* Archived items can only be restored */}
+							{item.status === "archived" && (
+								<DropdownMenuItem onClick={handleRestore}>
+									<RotateCcw className="mr-2 size-4" />
+									{m.archive_restore()}
+								</DropdownMenuItem>
+							)}
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								onClick={() => onDelete(item)}
+								className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+							>
+								<Trash2 className="mr-2 size-4" />
+								{m.common_delete()}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 			</CardFooter>
 		</Card>
 	);
-}
+});

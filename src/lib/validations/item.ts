@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { itemStatuses } from "@/db/schema";
 import { ValidationMessageKeys } from "@/i18n/zod-messages";
 
 const imageUrlSchema = z
@@ -93,3 +94,10 @@ export const updateItemSchema = z.object({
 
 export type CreateItemInput = z.infer<typeof createItemSchema>;
 export type UpdateItemInput = z.infer<typeof updateItemSchema>;
+
+/**
+ * Schema for item status filter query parameter
+ */
+export const itemStatusFilterSchema = z.enum(itemStatuses).optional();
+
+export type ItemStatusFilter = z.infer<typeof itemStatusFilterSchema>;

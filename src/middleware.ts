@@ -2,12 +2,9 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/astro/server";
 import { defineMiddleware, sequence } from "astro:middleware";
 import { paraglideMiddleware } from "@/paraglide/server";
 
-// API routes that don't need authentication and accept POST bodies
-// These routes need to skip Clerk to avoid request body consumption issues in dev
-const isPublicApiRoute = createRouteMatcher([
-	"/api/extract-metadata",
-	"/api/webhooks/(.*)",
-]);
+// API routes that don't need authentication
+// Webhooks use their own verification (e.g., Clerk webhook signatures)
+const isPublicApiRoute = createRouteMatcher(["/api/webhooks/(.*)"]);
 
 // All API routes skip paraglide (they don't need locale handling)
 const isApiRoute = createRouteMatcher(["/api(.*)"]);

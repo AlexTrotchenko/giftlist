@@ -1,13 +1,15 @@
 import type { APIContext } from "astro";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
-import { items, users } from "@/db/schema";
+import { type ItemStatus, itemStatuses, items, users } from "@/db/schema";
 import { getAuthAdapter } from "@/lib/auth";
 import { createDb } from "@/lib/db";
 import { type CreateItemInput, createItemSchema } from "@/lib/validations/item";
 
 /**
  * GET /api/items - List current user's items
+ * Supports optional ?status=active|received|archived filter
+ * If no status filter provided, returns all items (for backwards compatibility)
  */
 export async function GET(context: APIContext) {
 	const db = createDb(context.locals.runtime.env.DB);
@@ -35,10 +37,35 @@ export async function GET(context: APIContext) {
 		});
 	}
 
-	const userItems = await db
-		.select()
-		.from(items)
-		.where(eq(items.ownerId, user.id));
+	// Parse optional status filter from query params
+	const url = new URL(context.request.url);
+	const statusParam = url.searchParams.get("status");
+
+	// Validate status if provided
+	let statusFilter: ItemStatus | undefined;
+	if (statusParam) {
+		if (!itemStatuses.includes(statusParam as ItemStatus)) {
+			return new Response(
+				JSON.stringify({
+					error: "Invalid status filter",
+					details: `Status must be one of: ${itemStatuses.join(", ")}`,
+				}),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+		statusFilter = statusParam as ItemStatus;
+	}
+
+	// Build query with optional status filter
+	const userItems = statusFilter
+		? await db
+				.select()
+				.from(items)
+				.where(and(eq(items.ownerId, user.id), eq(items.status, statusFilter)))
+		: await db.select().from(items).where(eq(items.ownerId, user.id));
 
 	return new Response(JSON.stringify(userItems), {
 		status: 200,

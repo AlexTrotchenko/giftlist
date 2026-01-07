@@ -36,6 +36,13 @@
       "when": 1767629575921,
       "tag": "0004_add-priority",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1767751863618,
+      "tag": "0005_add-item-status-and-claim-purchase",
+      "breakpoints": true
     }
   ]
 }

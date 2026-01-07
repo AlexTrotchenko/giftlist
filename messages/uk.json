@@ -350,5 +350,31 @@
 
   "recipients_searchPlaceholder": "Пошук груп...",
   "recipients_noGroupsFound": "Групи не знайдено.",
-  "recipients_createGroup": "Створити \"{name}\""
+  "recipients_createGroup": "Створити \"{name}\"",
+
+  "archive_markReceived": "Позначити отриманим",
+  "archive_markReceivedDescription": "Підтвердити отримання подарунка",
+  "archive_archive": "Архівувати",
+  "archive_archiveDescription": "Приховати зі списку",
+  "archive_restore": "Відновити",
+  "archive_restoreDescription": "Повернути до списку",
+  "archive_moreActions": "Більше дій",
+  "archive_receiveSuccess": "Позначено отриманим",
+  "archive_archiveSuccess": "Елемент архівовано",
+  "archive_restoreSuccess": "Елемент відновлено",
+  "archive_statusReceived": "Отримано",
+  "archive_statusArchived": "Архівовано",
+
+  "purchase_markPurchased": "Позначити купленим",
+  "purchase_unmarkPurchased": "Скасувати позначку",
+  "purchase_purchasedBadge": "Куплено",
+  "purchase_purchaseSuccess": "Позначено купленим",
+  "purchase_unpurchaseSuccess": "Позначку скасовано",
+
+  "wishlist_filterStatus": "Статус",
+  "wishlist_filterStatusAll": "Всі елементи",
+  "wishlist_filterStatusActive": "Активні",
+  "wishlist_filterStatusReceived": "Отримані",
+  "wishlist_filterStatusArchived": "Архівовані",
+  "wishlist_clearStatusFilter": "Очистити фільтр статусу"
 }

@@ -2,13 +2,17 @@ import { memo } from "react";
 import {
 	AlertTriangle,
 	Calendar,
+	Check,
 	ExternalLink,
 	Package,
+	ShoppingCart,
 	Unlock,
 	User,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { MyClaimResponse } from "@/db/types";
 import { useMyClaims, useReleaseClaim } from "@/hooks/useClaims";
+import { useMarkPurchased, useUnmarkPurchased } from "@/hooks/usePurchase";
 import {
 	Card,
 	CardContent,
@@ -28,14 +32,35 @@ interface MyClaimCardProps {
 }
 
 const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
-	const { mutate: releaseClaim, isPending } = useReleaseClaim();
-	const { item, owner, expiresAt, amount } = claim;
+	const { mutate: releaseClaim, isPending: isReleasePending } = useReleaseClaim();
+	const markPurchased = useMarkPurchased();
+	const unmarkPurchased = useUnmarkPurchased();
+	const { item, owner, expiresAt, amount, purchasedAt } = claim;
 	const expiring = isExpiringSoon(expiresAt);
 	const locale = getLocale();
+	const isPurchased = purchasedAt !== null;
 
 	const handleRelease = () => {
 		releaseClaim(claim.id);
 	};
+
+	const handleTogglePurchased = () => {
+		if (isPurchased) {
+			toast.promise(unmarkPurchased.mutateAsync(claim.id), {
+				loading: m.common_saving(),
+				success: m.purchase_unpurchaseSuccess(),
+				error: (err) => err.message || m.errors_genericError(),
+			});
+		} else {
+			toast.promise(markPurchased.mutateAsync(claim.id), {
+				loading: m.common_saving(),
+				success: m.purchase_purchaseSuccess(),
+				error: (err) => err.message || m.errors_genericError(),
+			});
+		}
+	};
+
+	const isPurchasePending = markPurchased.isPending || unmarkPurchased.isPending;
 
 	return (
 		<Card
@@ -60,9 +85,19 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 					</div>
 				)}
 
-				{/* Expiration badge */}
-				{expiresAt && (
-					<div className="absolute right-2 top-2">
+				{/* Status badges */}
+				<div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+					{/* Purchased badge */}
+					{isPurchased && (
+						<Badge
+							className="gap-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+						>
+							<Check className="size-3" />
+							{m.purchase_purchasedBadge()}
+						</Badge>
+					)}
+					{/* Expiration badge */}
+					{expiresAt && (
 						<Badge
 							className={cn(
 								"gap-1",
@@ -78,8 +113,8 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 							)}
 							{getExpirationText(expiresAt, locale)}
 						</Badge>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 
 			<CardHeader className="pb-2">
@@ -110,29 +145,53 @@ const MyClaimCard = memo(function MyClaimCard({ claim }: MyClaimCardProps) {
 				</div>
 			</CardContent>
 
-			<CardFooter className="flex items-center justify-between gap-2 pt-4">
-				{item.url ? (
-					<a
-						href={item.url}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="inline-flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
+			<CardFooter className="flex flex-col gap-3 pt-4">
+				<div className="flex w-full items-center justify-between gap-2">
+					{item.url ? (
+						<a
+							href={item.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
+						>
+							<ExternalLink className="size-3.5" />
+							{m.common_viewProduct()}
+						</a>
+					) : (
+						<span />
+					)}
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={handleRelease}
+						disabled={isReleasePending}
+						className="gap-1.5"
 					>
-						<ExternalLink className="size-3.5" />
-						{m.common_viewProduct()}
-					</a>
-				) : (
-					<span />
-				)}
+						<Unlock className="size-4" />
+						{isReleasePending ? m.claims_releasing() : m.claims_release()}
+					</Button>
+				</div>
 				<Button
-					variant="outline"
+					variant={isPurchased ? "secondary" : "default"}
 					size="sm"
-					onClick={handleRelease}
-					disabled={isPending}
-					className="gap-1.5"
+					onClick={handleTogglePurchased}
+					disabled={isPurchasePending}
+					className={cn(
+						"w-full gap-1.5",
+						isPurchased && "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50",
+					)}
 				>
-					<Unlock className="size-4" />
-					{isPending ? m.claims_releasing() : m.claims_release()}
+					{isPurchased ? (
+						<>
+							<Check className="size-4" />
+							{m.purchase_unmarkPurchased()}
+						</>
+					) : (
+						<>
+							<ShoppingCart className="size-4" />
+							{m.purchase_markPurchased()}
+						</>
+					)}
 				</Button>
 			</CardFooter>
 		</Card>
