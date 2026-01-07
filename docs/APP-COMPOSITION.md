@@ -159,35 +159,59 @@ concept Group [User]
 ```
 concept Wishlist [User, Item]
   purpose: let someone express what gifts they want
-  
+
   state:
     items: User → set Item
     details: Item → (name: String, link: URL, price: Money, notes: String)
     owner: Item → User
-    
+    status: Item → Status  // active | received | archived
+
+  types:
+    Status = active | received | archived
+
   actions:
     add (o: User, gen i: Item, d: Details)
       add i to items[o]
       set details[i] = d
       set owner[i] = o
-      
+      set status[i] = active
+
     update (o: User, i: Item, d: Details)
       when i in items[o]
       set details[i] = d
-      
+
     remove (o: User, i: Item)
       when i in items[o]
       remove i from items[o]
       remove i from details
       remove i from owner
-      
+      remove i from status
+
+    receive (o: User, i: Item)
+      when i in items[o] and status[i] = active
+      set status[i] = received
+
+    archive (o: User, i: Item)
+      when i in items[o] and status[i] in {active, received}
+      when status[i] = active implies no active claims on i
+      set status[i] = archived
+
+    restore (o: User, i: Item)
+      when i in items[o] and status[i] in {received, archived}
+      set status[i] = active
+
     deleteAll (u: User)
       for i in items[u]:
         remove(u, i)
-      
+
   operational principle:
-    after add(o, i, d), i in items[o] and details[i] = d
-    after add(o, i, d) then remove(o, i), i not in items[o]
+    after add(o, i, d), i in items[o] and status[i] = active
+    after receive(o, i), status[i] = received
+    after archive(o, i), status[i] = archived (hidden from recipients)
+    after restore(o, i), status[i] = active (visible again)
+
+  visibility:
+    forRecipientOf(i): status[i] = archived implies i is HIDDEN
 ```
 
 ### 6. Tag
@@ -223,34 +247,49 @@ concept Tag [Item, Recipient]
 ```
 concept Claim [Item, User]
   purpose: prevent duplicate gifts by reserving items
-  
+
   state:
     claims: Item → User
-    
+    purchasedAt: Item → DateTime?  // null = not purchased, timestamp = purchased
+
   actions:
     claim (i: Item, u: User)
       when i not in domain(claims)
       set claims[i] = u
-      
+      set purchasedAt[i] = null
+
     unclaim (i: Item, u: User)
       when claims[i] = u
       remove i from claims
-      
+      remove i from purchasedAt
+
+    markPurchased (i: Item, u: User)
+      when claims[i] = u and purchasedAt[i] = null
+      set purchasedAt[i] = now()
+
+    unmarkPurchased (i: Item, u: User)
+      when claims[i] = u and purchasedAt[i] ≠ null
+      set purchasedAt[i] = null
+
     release (i: Item)
       when i in domain(claims)
       remove i from claims
-      
+      remove i from purchasedAt
+
     releaseAll (u: User)
       for i where claims[i] = u:
         remove i from claims
-        
+        remove i from purchasedAt
+
   operational principle:
     after claim(i, u1), cannot claim(i, u2) where u1 ≠ u2
     after claim(i, u) then unclaim(i, u), can claim(i, u2)
-    
+    after markPurchased(i, u), purchasedAt[i] ≠ null
+    after unmarkPurchased(i, u), purchasedAt[i] = null
+
   visibility:
-    forOwnerOf(i): claims[i] is HIDDEN
-    forRecipientOf(i): claims[i] is VISIBLE
+    forOwnerOf(i): claims[i] is HIDDEN, purchasedAt[i] is HIDDEN
+    forRecipientOf(i): claims[i] is VISIBLE, purchasedAt[i] is VISIBLE
 ```
 
 ### 8. Notification
@@ -397,6 +436,36 @@ sync Tag.affix(i, r)
   // else: action blocked
 ```
 
+### Item Lifecycle Events
+
+```
+sync Wishlist.receive(o, i)
+  // Notify all claimers that the item was received
+  for u where Claim.claims[i] = u:
+    Notification.send(u, o.name + " confirmed they received " + i.name)
+
+sync Wishlist.archive(o, i)
+  // No notifications - archive is a private owner action
+  // Item becomes hidden from recipients via visibility rules
+
+sync Wishlist.restore(o, i)
+  // No notifications - restore is a private owner action
+  // Item becomes visible to recipients again via visibility rules
+```
+
+### Claim Purchase Events
+
+```
+sync Claim.markPurchased(i, u)
+  // Notify other recipients (not the owner!) that item was purchased
+  for r in Tag.tags[i]:
+    for member in recipients(r) where member ≠ u and member ≠ Wishlist.owner[i]:
+      Notification.send(member, u.name + " purchased " + i.name)
+
+sync Claim.unmarkPurchased(i, u)
+  // No notification for unmark - rare edge case
+```
+
 ---
 
 ## Visibility Rules
@@ -405,20 +474,22 @@ sync Tag.affix(i, r)
 
 | Viewer | Condition | Sees |
 |--------|-----------|------|
-| Owner | Always | Details, tags, edit controls |
+| Owner | Always | Details, tags, edit controls, status |
 | Owner | Always | NOT claims |
-| Recipient | Tagged directly or via group | Details, claim status, claimer |
-| Recipient | Tagged | Claim/unclaim button |
+| Owner | status = archived | Item in archive view only |
+| Recipient | Tagged, status = active | Details, claim status, claimer |
+| Recipient | Tagged, status = received | Details with "Gifted" badge |
+| Recipient | Tagged, status = archived | Nothing (hidden) |
 | Other | Not tagged | Nothing |
 
 ### Claim Visibility
 
-| Viewer | Sees Claim Exists | Sees Claimer Identity |
-|--------|-------------------|----------------------|
-| Item Owner | No | No |
-| Claimer | Yes (own) | Yes (self) |
-| Other Recipient | Yes | Yes |
-| Non-Recipient | N/A | N/A |
+| Viewer | Sees Claim Exists | Sees Claimer Identity | Sees Purchase Status |
+|--------|-------------------|----------------------|----------------------|
+| Item Owner | No | No | No |
+| Claimer | Yes (own) | Yes (self) | Yes (own) |
+| Other Recipient | Yes | Yes | Yes ("Purchased" badge) |
+| Non-Recipient | N/A | N/A | N/A |
 
 ### Group Visibility
 
@@ -439,9 +510,13 @@ sync Tag.affix(i, r)
 | Session | login → active session | ✅ | No sync interferes |
 | Invitation | invite+accept → member | ✅ | Sync adds member correctly |
 | Group | addMember → in members | ✅ | Sync may trigger cleanup but doesn't break |
-| Wishlist | add → item exists | ✅ | No sync interferes with add |
+| Wishlist | add → item exists, status = active | ✅ | No sync interferes with add |
+| Wishlist | receive → status = received | ✅ | Sync sends notifications only |
+| Wishlist | archive → status = archived | ✅ | Precondition blocks if active claims exist |
+| Wishlist | restore → status = active | ✅ | No sync interferes |
 | Tag | affix → find includes | ✅ | Sync may block affix but doesn't break it |
 | Claim | claim → locked | ✅ | Release is explicit action, not corruption |
+| Claim | markPurchased → purchasedAt set | ✅ | Sync sends notifications only |
 | Notification | send → in inbox | ✅ | No sync interferes |
 
 ### Constraint Verification
@@ -453,6 +528,8 @@ sync Tag.affix(i, r)
 | One claim per item | Claim.claim precondition |
 | Owner can't see claims | Visibility rule on Claim |
 | Claims released on access loss | Multiple syncs on Group/Tag changes |
+| Active items with claims can't be archived | Wishlist.archive precondition |
+| Archived items hidden from recipients | Visibility rule on Wishlist |
 
 ---
 
@@ -464,9 +541,9 @@ See `diagrams/` folder:
 |------|-------------|
 | `00-concept-overview.mmd` | All concepts and relationships |
 | `01-user-lifecycle.mmd` | User states |
-| `02-item-lifecycle.mmd` | Private → Shared → Claimed |
+| `02-item-lifecycle.mmd` | Active → Received → Archived lifecycle |
 | `03-invitation-lifecycle.mmd` | Pending → Accepted/Declined |
-| `04-claim-lifecycle.mmd` | Available → Claimed |
+| `04-claim-lifecycle.mmd` | Unclaimed → Claimed → Purchased |
 | `05-group-membership.mmd` | Join/leave effects |
 | `06-sync-rules.mmd` | Cascade effects |
 | `07-visibility-rules.mmd` | What each role sees |

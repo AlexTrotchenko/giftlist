@@ -16,6 +16,7 @@ import { createDb, safeInArray } from "@/lib/db";
  * GET /api/shared-items - List items shared with the current user
  * Returns items that have been shared with groups the user is a member of,
  * excluding items owned by the user themselves.
+ * Archived items are excluded by default (only shows active and received items).
  */
 export async function GET(context: APIContext) {
 	const db = createDb(context.locals.runtime.env.DB);
@@ -45,6 +46,7 @@ export async function GET(context: APIContext) {
 	// Query items shared with groups the user is a member of
 	// Join: items -> itemRecipients -> groupMembers (filtered by current user)
 	// Exclude items owned by the current user
+	// Exclude archived items (recipients should not see archived items)
 	const sharedItems = await db
 		.select({
 			id: items.id,
@@ -55,6 +57,7 @@ export async function GET(context: APIContext) {
 			notes: items.notes,
 			imageUrl: items.imageUrl,
 			priority: items.priority,
+			status: items.status,
 			createdAt: items.createdAt,
 			updatedAt: items.updatedAt,
 			ownerName: users.name,
@@ -71,6 +74,7 @@ export async function GET(context: APIContext) {
 			and(
 				eq(groupMembers.userId, user.id),
 				ne(items.ownerId, user.id), // Exclude user's own items
+				ne(items.status, "archived"), // Exclude archived items
 			),
 		);
 
@@ -101,6 +105,7 @@ export async function GET(context: APIContext) {
 						userId: claims.userId,
 						amount: claims.amount,
 						expiresAt: claims.expiresAt,
+						purchasedAt: claims.purchasedAt,
 						createdAt: claims.createdAt,
 						userName: users.name,
 						userAvatarUrl: users.avatarUrl,
@@ -138,6 +143,7 @@ export async function GET(context: APIContext) {
 				userId: c.userId,
 				amount: c.amount,
 				expiresAt: c.expiresAt?.toISOString() ?? null,
+				purchasedAt: c.purchasedAt?.toISOString() ?? null,
 				createdAt: c.createdAt?.toISOString() ?? null,
 				user: {
 					id: c.userId,
@@ -174,6 +180,7 @@ export async function GET(context: APIContext) {
 					notes: row.notes,
 					imageUrl: row.imageUrl,
 					priority: row.priority,
+					status: row.status,
 					createdAt: row.createdAt?.toISOString() ?? null,
 					updatedAt: row.updatedAt?.toISOString() ?? null,
 				},

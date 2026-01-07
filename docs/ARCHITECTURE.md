@@ -16,9 +16,9 @@ Based on Daniel Jackson's *Essence of Software* methodology. The app is composed
 | **Session** | Sustained interaction without repeated authentication |
 | **Invitation** | Controlled group membership through explicit consent |
 | **Group** | Bundle users for collective operations |
-| **Wishlist** | Let someone express what gifts they want |
+| **Wishlist** | Let someone express what gifts they want (active → received → archived lifecycle) |
 | **Tag** | Control who can see which items |
-| **Claim** | Prevent duplicate gifts by reserving items |
+| **Claim** | Prevent duplicate gifts by reserving items (supports purchase tracking) |
 | **Notification** | Inform users of state changes they didn't initiate |
 
 ### Key Design Constraints

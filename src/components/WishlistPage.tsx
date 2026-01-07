@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ArrowUpDown, DollarSign, Filter, Gift, Link2, Plus, Star, X } from "lucide-react";
+import { Archive, ArrowUpDown, DollarSign, Filter, Gift, Link2, Plus, Star, X } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -45,16 +45,26 @@ function isLinkFilter(value: unknown): value is LinkFilter {
 	return typeof value === "string" && LINK_FILTERS.includes(value as LinkFilter);
 }
 
+// Status filter (wishlist-specific)
+type StatusFilter = "all" | "active" | "received" | "archived";
+const STATUS_FILTERS: StatusFilter[] = ["all", "active", "received", "archived"];
+
+function isStatusFilter(value: unknown): value is StatusFilter {
+	return typeof value === "string" && STATUS_FILTERS.includes(value as StatusFilter);
+}
+
 interface WishlistFilters {
 	priority: PriorityFilter;
 	priceRange: PriceRangeFilter;
 	link: LinkFilter;
+	status: StatusFilter;
 }
 
 const DEFAULT_FILTERS: WishlistFilters = {
 	priority: "all",
 	priceRange: "all",
 	link: "all",
+	status: "active",
 };
 
 function isWishlistFilters(value: unknown): value is WishlistFilters {
@@ -63,7 +73,8 @@ function isWishlistFilters(value: unknown): value is WishlistFilters {
 	return (
 		isPriorityFilter(obj.priority) &&
 		isPriceRangeFilter(obj.priceRange) &&
-		isLinkFilter(obj.link)
+		isLinkFilter(obj.link) &&
+		isStatusFilter(obj.status)
 	);
 }
 
@@ -163,12 +174,13 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 		isWishlistFilters,
 	);
 
-	// Count active filters
+	// Count active filters (status "active" is the default, so only count if not "active" or "all")
 	const activeFilterCount = useMemo(() => {
 		let count = 0;
 		if (filters.priority !== "all") count++;
 		if (filters.priceRange !== "all") count++;
 		if (filters.link !== "all") count++;
+		if (filters.status !== "active" && filters.status !== "all") count++;
 		return count;
 	}, [filters]);
 
@@ -183,6 +195,12 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 	// Filter items based on current filters
 	const filteredItems = useMemo(() => {
 		return items.filter((item) => {
+			// Status filter (default to active if not specified)
+			if (filters.status !== "all") {
+				const itemStatus = item.status ?? "active";
+				if (itemStatus !== filters.status) return false;
+			}
+
 			// Priority filter
 			if (!matchesPriority(item.priority, filters.priority)) return false;
 
@@ -403,6 +421,24 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 							<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
 							<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
 						</FilterSelect>
+
+						<FilterSelect
+							value={filters.status}
+							onValueChange={(value) =>
+								setFilters((f) => ({ ...f, status: value as StatusFilter }))
+							}
+							icon={<Archive className={`mr-2 size-4 ${isFiltersHydrated && filters.status !== "active" ? "text-primary" : "opacity-50"}`} />}
+							placeholder={m.wishlist_filterStatus()}
+							isActive={filters.status !== "active"}
+							onClear={() => setFilters((f) => ({ ...f, status: "active" }))}
+							clearLabel={m.wishlist_clearStatusFilter()}
+							className="w-full"
+						>
+							<SelectItem value="all">{m.wishlist_filterStatusAll()}</SelectItem>
+							<SelectItem value="active">{m.wishlist_filterStatusActive()}</SelectItem>
+							<SelectItem value="received">{m.wishlist_filterStatusReceived()}</SelectItem>
+							<SelectItem value="archived">{m.wishlist_filterStatusArchived()}</SelectItem>
+						</FilterSelect>
 					</MobileFiltersSheet>
 					<Button variant="outline" size="sm" onClick={openQuickAdd} className="shrink-0 rounded-full">
 						<Plus className="size-4" />
@@ -488,6 +524,23 @@ function WishlistContent({ initialItems }: { initialItems: Item[] }) {
 					<SelectItem value="all">{m.wishlist_filterLinkAll()}</SelectItem>
 					<SelectItem value="with">{m.wishlist_filterLinkWith()}</SelectItem>
 					<SelectItem value="without">{m.wishlist_filterLinkWithout()}</SelectItem>
+				</FilterSelect>
+
+				<FilterSelect
+					value={filters.status}
+					onValueChange={(value) =>
+						setFilters((f) => ({ ...f, status: value as StatusFilter }))
+					}
+					icon={<Archive className={`mr-2 size-4 ${isFiltersHydrated && filters.status !== "active" ? "text-primary" : "opacity-50"}`} />}
+					placeholder={m.wishlist_filterStatus()}
+					isActive={filters.status !== "active"}
+					onClear={() => setFilters((f) => ({ ...f, status: "active" }))}
+					clearLabel={m.wishlist_clearStatusFilter()}
+				>
+					<SelectItem value="all">{m.wishlist_filterStatusAll()}</SelectItem>
+					<SelectItem value="active">{m.wishlist_filterStatusActive()}</SelectItem>
+					<SelectItem value="received">{m.wishlist_filterStatusReceived()}</SelectItem>
+					<SelectItem value="archived">{m.wishlist_filterStatusArchived()}</SelectItem>
 				</FilterSelect>
 
 				{isFiltersHydrated && hasActiveFilters && (

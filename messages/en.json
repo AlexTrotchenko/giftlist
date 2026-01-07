@@ -366,5 +366,31 @@
 
   "recipients_searchPlaceholder": "Search groups...",
   "recipients_noGroupsFound": "No groups found.",
-  "recipients_createGroup": "Create \"{name}\""
+  "recipients_createGroup": "Create \"{name}\"",
+
+  "archive_markReceived": "Mark as Received",
+  "archive_markReceivedDescription": "Confirm you received this gift",
+  "archive_archive": "Archive",
+  "archive_archiveDescription": "Hide from wishlist",
+  "archive_restore": "Restore",
+  "archive_restoreDescription": "Return to wishlist",
+  "archive_moreActions": "More actions",
+  "archive_receiveSuccess": "Marked as received",
+  "archive_archiveSuccess": "Item archived",
+  "archive_restoreSuccess": "Item restored",
+  "archive_statusReceived": "Received",
+  "archive_statusArchived": "Archived",
+
+  "purchase_markPurchased": "Mark as Purchased",
+  "purchase_unmarkPurchased": "Unmark as Purchased",
+  "purchase_purchasedBadge": "Purchased",
+  "purchase_purchaseSuccess": "Marked as purchased",
+  "purchase_unpurchaseSuccess": "Unmarked as purchased",
+
+  "wishlist_filterStatus": "Status",
+  "wishlist_filterStatusAll": "All items",
+  "wishlist_filterStatusActive": "Active",
+  "wishlist_filterStatusReceived": "Received",
+  "wishlist_filterStatusArchived": "Archived",
+  "wishlist_clearStatusFilter": "Clear status filter"
 }
