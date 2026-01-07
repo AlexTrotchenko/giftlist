@@ -99,6 +99,13 @@
   "item_priceLabel": "Price ({currency})",
   "item_quickAdd": "Quick Add",
   "item_quickAddDescription": "Enter a product URL to quickly add an item to your wishlist.",
+  "item_extractMethod": "Extraction method",
+  "item_extractBasic": "Basic",
+  "item_extractBasicDescription": "Fast HTML parsing",
+  "item_extractAi": "AI Smart",
+  "item_extractAiDescription": "Better for complex pages",
+  "item_extracting": "Extracting...",
+  "item_extractingWithAi": "AI is analyzing the page...",
 
   "groups_title": "My Groups",
   "groups_emptyTitle": "No groups yet",

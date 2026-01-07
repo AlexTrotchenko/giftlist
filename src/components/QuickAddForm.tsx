@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { useMetadataExtract } from "@/hooks/useMetadataExtract";
+import { useAiMetadataExtract } from "@/hooks/useAiMetadataExtract";
 import * as m from "@/paraglide/messages";
 
 export interface ExtractedData {
@@ -44,7 +44,7 @@ export function QuickAddForm({
 	const [phase, setPhase] = useState<Phase>("url-input");
 	const [url, setUrl] = useState("");
 
-	const metadataExtract = useMetadataExtract();
+	const aiExtract = useAiMetadataExtract();
 
 	const handleOpenChange = (isOpen: boolean) => {
 		if (!isOpen) {
@@ -56,7 +56,7 @@ export function QuickAddForm({
 	const resetForm = () => {
 		setPhase("url-input");
 		setUrl("");
-		metadataExtract.reset();
+		aiExtract.reset();
 	};
 
 	const handleFetchMetadata = async () => {
@@ -65,7 +65,7 @@ export function QuickAddForm({
 		setPhase("loading");
 
 		try {
-			const data = await metadataExtract.mutateAsync(url);
+			const data = await aiExtract.mutateAsync(url);
 			// Success: pass extracted data to parent
 			handleOpenChange(false);
 			onExtractComplete({
@@ -82,7 +82,7 @@ export function QuickAddForm({
 		}
 	};
 
-	const isLoading = metadataExtract.isPending;
+	const isLoading = aiExtract.isPending;
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -121,6 +121,10 @@ export function QuickAddForm({
 				{/* Phase: Loading Skeleton */}
 				{phase === "loading" && (
 					<div className="grid gap-4 py-4">
+						<div className="flex items-center gap-2 text-sm text-muted-foreground">
+							<Sparkles className="size-4 animate-pulse text-primary" />
+							<span>{m.item_extractingWithAi()}</span>
+						</div>
 						<Card className="animate-pulse">
 							<CardContent className="pt-6">
 								<div className="aspect-video w-full rounded bg-muted" />
@@ -148,7 +152,7 @@ export function QuickAddForm({
 							onClick={handleFetchMetadata}
 							disabled={!url.trim() || isLoading}
 						>
-							<Link className="size-4" />
+							<Sparkles className="size-4" />
 							{m.item_quickAdd()}
 						</Button>
 					</DialogFooter>

@@ -88,6 +88,13 @@
   "item_priceLabel": "Ціна ({currency})",
   "item_quickAdd": "Швидке додавання",
   "item_quickAddDescription": "Введіть посилання на продукт, щоб швидко додати елемент до списку бажань.",
+  "item_extractMethod": "Метод аналізу",
+  "item_extractBasic": "Базовий",
+  "item_extractBasicDescription": "Швидкий аналіз HTML",
+  "item_extractAi": "Розумний ШІ",
+  "item_extractAiDescription": "Краще для складних сторінок",
+  "item_extracting": "Аналіз...",
+  "item_extractingWithAi": "ШІ аналізує сторінку...",
 
   "groups_title": "Мої групи",
   "groups_emptyTitle": "Груп ще немає",
